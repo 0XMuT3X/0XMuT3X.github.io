@@ -1,0 +1,804 @@
+---
+title: "Master the phishing"
+Categories: [phishing]
+---
+
+# The Analyst's Field Guide to Phishing: Email Analysis & Investigation
+
+- Email remains one of the oldest and most heavily abused channels on the internet  and phishing is still the entry point behind a large share of real-world breaches. This guide is a practical, end-to-end reference for anyone who investigates suspicious mail: from understanding how a message is authenticated and routed, to dissecting headers, classifying the attack, and running a full incident-response cycle.
+
+- It is written to be used at the desk during an active investigation, not just read once. Below is a map of what each section covers.
+
+## What This Guide Covers
+
+**1. Email Authentication  SPF, DKIM & DMARC**
+How each mechanism validates a sender, how to read their results in a message, where they pass or fail, and what those outcomes tell you about spoofing.
+
+**2. Email Flow & Architecture**
+The journey of a message through MUA, MSA, MTA, MX, and MDA, the role of SMTP, the ports involved (25, 587, 465), and why SMTP's original design left room for abuse.
+
+**3. Email Header Analysis**
+A field-by-field breakdown of the headers that matter  Received, Return-Path, Message-ID, DKIM-Signature, Received-SPF, X-Originating-IP, and more  and how to reconstruct a message's true path.
+
+**4. Phishing & Email Attack Types**
+Clear definitions of spam, phishing, spear phishing, whaling, smishing, vishing, spoofing, Business Email Compromise (BEC), and blackmail, with the distinguishing traits of each.
+
+**5. Anatomy of a Phishing Email**
+The common red flags  sender impersonation, urgency and trigger keywords, brand mimicry, generic greetings, hidden or shortened links, and malicious attachments.
+
+**6. Investigation Tools & Techniques**
+The toolkit for safe analysis: URL scanning and expansion, sandbox detonation, file-hash and domain reputation checks, and online header analyzers.
+
+**7. Log Analysis**
+Where to hunt within your environment  the mail gateway and web proxy  and the artifacts worth pulling from each.
+
+**8. The Phishing Incident-Response Playbook**
+A six-stage workflow  Preparation, Detection, Analysis, Containment & Eradication, Recovery, and Post-Incident  covering what to do at each step.
+
+**9. Real-World Phishing Samples, Dissected**
+Walkthroughs of live samples (PayPal, DHL, Netflix, Binance, Microsoft, and BEC lures), each broken down into observable indicators and mapped to MITRE ATT&CK.
+
+**10. Outlook Forensics**
+How to locate and examine OST and PST data on a Windows host, and the tools used to read them.
+
+**11. Analyst Checklist & Scenarios**
+A quick-reference checklist of the data to collect from every message, plus guided scenarios for responding when a user reports  or clicks  a phishing email.
+
+---
+
+## 1. Email Authentication  SPF, DKIM & DMARC
+
+Most inbound mail filtering decisions begin with header analysis, and three authentication mechanisms sit at the centre of it. Together they answer one question: *did this message really come from where it claims to come from?*
+
+### Sender Policy Framework (SPF)
+
+SPF verifies that a message was sent from an IP address authorized to send on behalf of the sender's domain.
+
+How it works:
+1. A sender submits a message addressed to a recipient.
+2. The message travels across the internet and reaches the recipient's mail server (Gmail, Outlook, etc.).
+3. The receiving server validates the message by querying the sender domain's DNS and reading its **TXT record**, which lists the IP addresses authorized to send for that domain.
+4. If the sending IP matches an authorized entry, the message is allowed through. If it does not, the server can reject or flag it.
+
+When you configure SPF, you define a baseline of permitted sources  for example, "mail from IP X is legitimate." Anything outside that baseline is treated as suspicious.
+
+**How to check SPF on a message:**
+- Open the message in Gmail (or any mail client).
+- Open the overflow menu (the three dots) and select **Show original**.
+- Review the authentication details, where you will find the SPF result and the source IP.
+- Note the action taken: **Pass**, **Fail**, or **Neutral** (the provider could not evaluate SPF).
+
+### Domain Keys Identified Mail (DKIM)
+
+- DKIM works on the same principle as SPF but adds a cryptographic signature. When the sender's infrastructure dispatches a message, it signs the content with a **private key**. On arrival, the receiving server queries the sender domain's DKIM record in DNS to retrieve the matching **public key** and uses it to verify the signature. If verification succeeds, the message is authentic and unaltered; if it fails, the sender  or the content  cannot be trusted.
+
+### Domain-based Message Authentication, Reporting & Conformance (DMARC)
+
+- DMARC acts as a policy layer on top of SPF and DKIM  effectively a multi-factor check for inbound mail. In DNS, the domain owner publishes a DMARC record defining how receivers should treat messages that fail SPF and/or DKIM.
+
+After SPF and DKIM are evaluated, one of two things happens:
+1. **The message is valid** and the sender is authorized  it is delivered normally.
+2. **The message fails**  DMARC applies the published policy.
+
+DMARC policies:
+- **none**  take no action; only send a report describing the message.
+- **quarantine**  deliver the suspicious message to a separate folder (e.g., spam).
+- **reject**  block the message outright.
+
+DMARC also produces aggregate reports that include:
+- the number of messages checked,
+- how many failed SPF and/or DKIM,
+- details about the sources attempting to send as the domain.
+
+> **Tooling:** MxToolBox and DNSstuff are reliable online tools for reviewing a domain's SPF and DKIM records.
+
+---
+
+## 2. Email Flow & Architecture
+
+Understanding how a message moves from sender to recipient makes header analysis far easier to reason about.
+
+### The agents involved
+
+- **Mail User Agent (MUA)**  the application used to compose and read mail (e.g., Outlook or a webmail interface).
+- **Mail Submission Agent (MSA)**  the server that accepts the message from the MUA and hands it to the MTA.
+- **Mail Transfer Agent (MTA)**  accepts the message from the MSA and relays it toward delivery.
+- **Mail Exchange (MX) server**  the destination mail server that receives mail for the recipient's domain.
+- **Mail Delivery Agent (MDA)**  delivers and stores the message in the recipient's mailbox.
+- **Final MUA delivery**  the recipient's client retrieves and displays the message.
+
+![Alt text](https://i.ibb.co/G4zSYtKq/02-mail-acronym-soup.png)
+
+
+---
+
+
+
+![Alt text](https://i.ibb.co/C56yy4WM/02-smtp-flow-architecture.png)
+
+When a user clicks "Send," modern clients rarely speak SMTP directly. Instead they hand the message to an MSA, which injects it into SMTP-based infrastructure. From that point on, **SMTP is the primary transport mechanism** carrying the message across the internet.
+
+### Message routing and the Received chain
+
+At each hop, a server appends a `Received:` header containing:
+- the server hostname,
+- the IP address (public or private),
+- a processing timestamp,
+- routing information.
+
+These headers form a **reverse-chronological chain**: the most recent hop appears at the top, and the originating system appears at the bottom. Reading them from the bottom up lets you reconstruct the path the message actually travelled.
+
+> **Caveat:** `Received` headers are governed by RFC convention, not by law, so they can be altered or forged. Treat them as evidence to corroborate, not as ground truth.
+
+### Transport protocols and ports
+
+- **Port 25**  server-to-server mail relay.
+- **Port 587**  authenticated mail submission (the modern standard).
+- **Port 465**  SMTP over TLS (encrypted relay).
+
+Encryption can also be negotiated with **STARTTLS**, which upgrades a plaintext SMTP session to an encrypted one  conceptually similar to HTTP upgrading to HTTPS.
+
+### Mail retrieval protocols
+
+Three protocols handle outgoing and incoming mail:
+- **SMTP (port 25)**  sends mail.
+- **POP3 (port 110)**  transfers messages from server to client.
+- **IMAP (port 143)**  same role as POP3, with server-side storage.
+
+**POP3 vs. IMAP:**
+
+| POP3 | IMAP |
+|------|------|
+| Mail is downloaded and stored on a single device. | Mail is stored on the server and accessible from multiple devices. |
+| Accessible only from the device it downloaded to. | Sent messages are also kept on the server. |
+| Messages may be lost if "keep mail on server" is disabled. | Messages sync across all connected devices. |
+
+### Why SMTP needed reinforcement
+
+SMTP was designed when the internet was small and trusted, so it originally lacked:
+- authentication and authorization,
+- spam-protection mechanisms,
+- support for non-English character sets,
+- built-in attachment handling.
+
+These gaps drove the later extensions and security layers  including the authentication mechanisms above  that modern email depends on. The syntax of the messages themselves is defined by the **Internet Message Format (IMF)**.
+
+---
+
+## 3. Email Header Analysis
+
+![Alt text](https://i.ibb.co/s9yWcxKw/03-raw-header-example.png)
+
+Read headers from the bottom up to follow the message's true journey. The key fields:
+
+- **Delivered-To**  usually the recipient's address.
+- **Received**  a record of the SMTP servers the message passed through (the routing trail). Each entry typically includes the server's IP address, the SMTP ID of the relaying server, and the date and time the message was received.
+- **X-Received**  generally low value for forensics, as it varies between servers and MTAs.
+- **Received-SPF**  the SPF record plus a result code:
+  - **Pass**  the source is valid.
+  - **Soft fail**  the source is possibly forged.
+  - **Neutral**  validity cannot be determined.
+  - **None**  no SPF record was found.
+  - **Unknown**  the SPF check could not be performed.
+  - **Error**  an error occurred during the SPF check.
+- **Authentication-Results (DMARC)**  the combined SPF, DKIM, and DMARC outcomes.
+- **DKIM-Signature**  the signature and its tags:
+  - `v`  version,
+  - `a`  signing/encryption algorithm,
+  - `c`  canonicalization algorithm,
+  - `d`  signing domain (used with the selector record),
+  - `b`  the signature (hash of the headers listed in `h`),
+  - `h`  the header fields included in the signature.
+- **Return-Path**  the address that bounce messages and delivery failures are sent to.
+- **Message-ID**  a unique identifier for the message. Two messages sharing the same ID is a strong spoofing indicator, since the generation algorithm differs from sender to sender.
+
+The **X-header** family is usually of limited analytical value, but any IP addresses it exposes can feed cyber-threat-intelligence (CTI) lookups.
+
+### Header field reference
+
+| Header | What it is | Why it matters |
+|--------|-----------|----------------|
+| **Subject** | A short description of the email's topic. | Gives recipients a quick summary and helps with prioritization. |
+| **Message-ID** | A unique identifier for the message. | Ensures each message can be referenced uniquely, especially in threads. |
+| **MIME-Version** | The MIME version used to encode the message. | Enables mixed content (text, HTML, attachments, images) in one message. |
+| **Content-Type** | The type and format of the content. | Helps the client render the message correctly, including character encoding. |
+| **Return-Path** | The address for bounce/DSN messages. | Routes delivery-failure notifications back to the sender. |
+| **Received** | The trace of servers the message passed through. | Reconstructs the route and the sequence of relays. |
+| **X-Mailer** | The client or software used to send the message. | Useful for fingerprinting the sending application. |
+| **DKIM-Signature** | A cryptographic signature from the sender's domain. | Verifies integrity and authenticity; flags tampering. |
+| **SPF-Record** | The sender domain's published SPF record. | Lets the receiver confirm the sending server is authorized. |
+| **X-Originating-IP** | The IP of the originating device. | Reveals the source location/network  valuable for source attribution. |
+
+---
+
+## 4. Phishing & Email Attack Types
+
+- **Spam**  junk mail sent to large recipient lists. When it turns malicious, it is called **MalSpam**.
+- **Phishing**  mail in which the sender impersonates a trusted party to lure the recipient into surrendering sensitive information.
+- **Spear phishing**  phishing aimed at a specific individual or organization, often personalized using reconnaissance data.
+- **Whaling**  spear phishing aimed at senior leadership (CEO, CISO, and other high-value targets).
+- **Smishing**  phishing delivered over SMS/text messages.
+- **Vishing**  the same social-engineering goal pursued over a voice call instead of text.
+- **Spoofing**  deceiving systems, people, or organizations into perceiving something to be what it is not.
+- **Business Email Compromise (BEC)**  attackers impersonate executives or trusted partners and use social engineering to push employees into unauthorized actions such as wire transfers, data disclosure, or fraudulent transactions. BEC can cause significant financial and reputational damage.
+- **Blackmail**  the attacker coerces a victim (often using compromising material) and may register a lookalike address to impersonate a known contact  for example, `moha@abc.com` (legitimate) versus `moha.abdallah@abc.com` (attacker).
+
+### Common phishing delivery techniques
+
+**Spear phishing via URL**  the attacker sends a link that leads to one of two outcomes:
+1. a malware download, or
+2. an HTML page that harvests credentials. Compare the page against the brand it imitates; a high similarity to a real login page is a strong phishing signal. Attackers often favour infrastructure with clean reputation and valid signatures to evade detection.
+
+**Spear phishing via attachment**  a Word document, Excel sheet, or PDF carries an embedded script (often VBA) that downloads malware or modifies the host (e.g., registry changes for persistence).
+
+---
+
+## 5. Anatomy of a Phishing Email
+
+Typical traits that phishing messages share:
+- The sender name or address masquerades as a trusted entity (email spoofing).
+- The subject and/or body convey urgency or use trigger words such as *Invoice* or *Suspended*.
+- The HTML body is crafted to imitate a trusted brand (e.g., Amazon)  **or**, conversely, is poorly formatted and sloppily written.
+- The body uses generic greetings such as *Dear Sir/Madam*.
+- Hyperlinks are present, frequently behind URL shorteners that hide the true destination.
+- A malicious attachment is disguised as a legitimate document.
+![Alt text](https://i.ibb.co/JRhhx4gj/05-basic-email-components.png)
+
+### Inspecting the email body
+
+- Open the source view to read the raw HTML of the body.
+- Use the same view to inspect attachments. Watch for tags such as `Content-Type`, `Content-Disposition` (which marks an attachment), and `Content-Transfer-Encoding` (e.g., `base64`).
+- For an encoded attachment, you can extract and decode the content for further analysis.
+![Alt text](https://i.ibb.co/kWgygMM/05-base64-attachment-tags.png)
+
+---
+
+## 6. Investigation Tools & Techniques
+
+### URL analysis
+- After extracting a URL from a message, scan it with **urlscan.io** for detailed insight. Prefer the **private** scan mode  attackers monitor public submissions and may use that visibility to evade detection.
+- If the link is shortened, expand it with a URL expander before analysis.
+- Note the **root domain** of every extracted URL and check its reputation, not just the full link.
+- **URL Extractor** (convertcsv.com/url-extractor.htm) can pull links automatically from raw email data.
+
+![Alt text](https://i.ibb.co/tpMJ6MjQ/06-url-extractor.png)
+![Alt text](https://i.ibb.co/F4ntBtwF/06-url-extractor-results.png)
+
+### Sandbox detonation
+You do not need deep malware-analysis skills to triage a file  submit it to an online sandbox and review the behaviour. In a typical case, a malicious Word document with macros downloads several executables; the sandbox surfaces their reputation, any Base64 payload executed via `powershell.exe` (decodable with CyberChef), the files it pulls down, and registry changes tied to persistence or autorun. From there you can block every associated IOC (IP, hash, domain, etc.).
+
+Recommended sandboxes:
+- **Any.Run**  app.any.run
+- **Hybrid Analysis**  hybrid-analysis.com
+- **Joe Security**  joesecurity.org
+
+### Reputation and IOC validation
+
+| IOC type | Tools |
+|----------|-------|
+| File hashes (processes/files) | VirusTotal, Hybrid Analysis |
+| Links | VirusTotal, Hybrid Analysis, urlscan.io |
+| Domains and IPs | VirusTotal, Hybrid Analysis, Talos Intelligence |
+| File reputation | Talos File Reputation, VirusTotal, ReversingLabs |
+| IP reputation | IPinfo.io |
+
+### Header-analysis tools
+- Google Admin Toolbox Messageheader  toolbox.googleapps.com/apps/messageheader/analyzeheader
+- Message Header Analyzer  mha.azurewebsites.net
+- mailheader.org
+![Alt text](https://i.ibb.co/HLpL9jt3/06-thunderbird-save-attachment.png)
+### Automated phishing analysis
+- **PhishTool** parses an email and surfaces the key fields automatically  sender, recipient(s), timestamp, originating IP and reverse DNS, SMTP relays, and X-header details.
+![Alt text](https://i.ibb.co/2Bv1Kb7/06-phishtool.png)
+
+---
+
+## 7. Log Analysis
+
+Two locations in your environment are most productive for phishing log analysis.
+
+**Mail gateway (inbound mail logs):**
+- Watch for "hooking" subject lines designed to grab attention.
+- Validate the sender IP: look up the sender domain in MxToolBox and confirm the IP falls within the domain's expected subnet/range. If it does not, suspect spoofing or third-party hosting.
+- Capture the recipient IP and review recent activity associated with it.
+- Detect malware by file hash (signature-based).
+- Review file size, return path, and client name.
+
+These same artifacts (and the web proxy logs) feed the broader investigation when correlating who received, opened, or clicked a message.
+
+---
+
+## 8. The Phishing Incident-Response Playbook
+
+A six-stage workflow for handling a phishing incident end to end.
+
+### Stage 1  Preparation
+- Maintain a list of company-owned domains so you do not take action against your own infrastructure.
+- Maintain a list of people authorized to register domains.
+- Build email templates for company-wide use  for example, to notify all employees of an active campaign and to request domain takedowns from hosting providers.
+- Ensure that mail anti-virus/anti-spam is in place, that users know how to report phishing, and that detection exists for Office documents spawning child processes (PowerShell, CMD, WMI).
+- Review threat intelligence relevant to your organization, your brand and sector, and common attack patterns.
+- Inventory assets: users, computers, admins, servers, and security appliances.
+
+### Stage 2  Detection
+Identify risk through two lenses.
+
+**Threat indicators:**
+- *Alerts* generated by your own systems  tickets, SIEM, AV/EDR, DNS and web-proxy reports, and bounced-message errors from the mail server.
+- *Notifications* from external sources  internal users, external recipients, third parties, ISPs, and mail providers (via email, chat, or phone).
+
+**Risk factors:** credential theft, malware delivery, criminal activity, and blackmail/ransom.
+![Alt text](https://i.ibb.co/YFXJzNYG/08-flow-detect.png)
+
+Then perform **data collection**, documenting:
+- Domain details  reputation, registrar, owner, hosting IP, multi-stage redirects, and underlying technology (WordPress, Joomla, custom).
+- IP details  reputation, owner, geolocation, and other domains on the same IP.
+- File details.
+
+**Categorize** the message (phishing, spam, spear phishing, whaling, BEC, brand rip-off, etc.) and run **triage** to determine impact (message impact, financial impact, data loss) and scope (how many received it, opened the attachment, clicked the link, or submitted information)  and whether it is a false positive.
+
+
+### Stage 3  Analysis
+- Determine whether it is a malware campaign or credential harvesting.
+- Inspect the message and body.
+- Detonate malicious attachments in a sandbox and extract IOCs.
+- Analyze link hostnames with CTI.
+- Investigate the headers and collect relevant artifacts.
+
+Validate collected IOCs by type (hashes, links, domains/IPs) using the tools in Section 6, then scan the enterprise: update spam filters and firewall/IDS rules, search all mailboxes and endpoints (via EDR), and update your scope and lists  affected recipients, endpoints, enclaves, and business units. Keep updating continuously as new IOCs surface, until all compromised hosts and mailboxes are identified and every URL, domain, IP, port, file, and hash has been investigated.
+![Alt text](https://i.ibb.co/Q78LZdcR/08-flow-analyze.png)
+### Stage 4  Containment & Eradication
+**Block** the indicators:
+- Update spam filters and firewall/proxy rules.
+- Apply Black Hole DNS  when a client requests a known-bad domain, the DNS server withholds the answer or returns a remediation page; alternatively, enrich the DNS server with a curated blacklist of known-bad domains.
+- Submit indicators to third parties such as web-filter vendors and Google Safe Browsing.
+
+**Validate user actions**  have messages been read, attachments opened, or links clicked?
+
+**Delete the mail** from user inboxes (via the spam tool or admin console, both cloud and on-prem) and remove any downloaded attachments (using EDR/SIEM to sweep the enterprise).
+
+**Monitor** for related inbound messages, outbound connections to known IOCs, and new files matching identified hashes.
+
+![Alt text](https://i.ibb.co/V0bLSVC9/08-flow-contain-eradicate.png)
+### Stage 5  Recovery
+Update defenses and decide which controls stay and which must be relaxed to restore normal operation:
+- spam filters,
+- firewall rules,
+- EDR (banned hashes and domains),
+- containment and proxy blocks.
+
+Confirm that the new rules are not blocking legitimate mail or sites before closing out.
+![Alt text](https://i.ibb.co/hRc4yHdr/08-flow-recover.png)
+
+### Stage 6  Post-Incident
+Capture lessons learned and feed them back into preparation. Reference playbook: *github.com/socfortress/Playbooks/tree/main/IRP-Phishing#6-post-incident*.
+
+---
+
+## 9. Real-World Phishing Samples, Dissected
+
+A set of live samples, each broken down into observable indicators.
+
+### PayPal  "Cancel your PayPal order"
+- Attackers reuse legitimate-looking email, shortened URLs, and HTML to impersonate the brand. The recipient address is not a genuine PayPal account, and there is a mismatch between the displayed sender details and the actual sender address. A hooking subject line draws attention. The body itself looks benign until you inspect the "Cancel the order" button  its HTML `href` points to a shortener (`https://is.gd/...`) that redirects elsewhere. Run the link through urlscan.io before going further.
+
+![Alt text](https://i.ibb.co/tw2kk31r/09-paypal-email.png)
+- The sender display name says PayPal, but the address and recipient details don't line up.
+
+![Alt text](https://i.ibb.co/ZpnP19pv/09-paypal-receipt-body.png)
+- The receipt body looks convincing but is designed purely to provoke a "cancel" click.
+
+![Alt text](https://i.ibb.co/Gvk7vDZK/09-paypal-cancel-button.png)
+- The bait: a prominent "Cancel the order" button.
+
+![Alt text](https://i.ibb.co/PzYNq5J5/09-paypal-html-source.png)
+- In the HTML source, the button's href resolves to anis.gd shortener, not PayPal :)
+
+### "Track your package"
+
+- Artifacts: a spoofed sender address, pixel tracking, and link manipulation. The message is dressed up as a shipping notice, and the subject line carries a fake tracking number that the in-body link matches. The visible link may be blocked by the provider, so inspect the raw source  there you find an embedded image named `Tracking.png`, a tracking pixel that beacons back to the attacker's server.
+
+-  There you find an embedded image named Tracking.png , a tracking pixel that beacons back to the attacker's server.
+ ![Alt text](https://i.ibb.co/T5B0YQ7/09-track-package-email.png)
+
+- A shipping-notice lure: the body link mirrors the fake tracking number in the subject.
+![Alt text](https://i.ibb.co/mm4q0Ps/09-track-package-html-source.png)
+
+### "Select your email provider to view document"
+- Techniques: urgency, brand-mimicking HTML, link manipulation, credential harvesting, and poor grammar. The lure presents a fake document with a "click to download" button. Clicking redirects to a page styled like OneDrive  but the URL is unrelated to Microsoft. Further buttons lead to a fake "SharePoint Online" page (note the grammatical errors) and finally a credential-capture form. Entering *any* credentials returns "invalid credentials" while the submitted data is sent to the attacker's server  a textbook credential-harvesting flow.
+
+![Alt text](https://i.ibb.co/8498VFXT/09-citrix-claim-email.png)
+- The lure: a Citrix-style document notice with an expiry date and a download button.
+
+![Alt text](https://i.ibb.co/jk9GQMYW/09-fake-onedrive-page.png)
+- Clicking through lands on a fake OneDrive page — note the non-Microsoft URL.
+
+![Alt text](https://i.ibb.co/dscBYr57/09-fake-sharepoint-adobe.png)
+- A second hop poses as "SharePoint Online," prompting the victim to pick an email provider.
+
+![Alt text](https://i.ibb.co/tnrwGNm/09-fake-outlook-login.png)
+- The credential-capture form, branded as an Outlook login.
+
+![Alt text](https://i.ibb.co/bMhjYY0g/09-invalid-credentials.png)
+- Any input returns "Invalid Credentials" the data has already been sent to the attacker.
+
+
+### Netflix  "Please update your payment details"
+- Techniques: spoofed sender, urgency, brand-mimicking HTML, poor grammar/typos, and attachments. The message appears to come from "Netflix," using an *Account Suspended / on hold* hook to rush the victim. Tells: the word "Netflix" is misspelled in places; a PDF attachment is presented as the way to "repair" the account; and the support phone number is not a US number, even though Netflix support is US-based. Opening the PDF reveals a forged "Update Your Payment Methods" page.
+
+![Alt text](https://i.ibb.co/9kXStGYB/09-netflix-email.png)
+- A spoofed "Netflix billing" sender with an account-suspended hook note the misspellings.
+
+![Alt text](https://i.ibb.co/1fV21NJG/09-netflix-payment-body.png)
+- The body pushes urgency and points to an attached PDF; the support number is not a US number
+
+![Alt text](https://i.ibb.co/PzJRcbf9/09-netflix-pdf-attachment.png)
+- The attachment opens to a forged "Update Your Payment Methods" page.
+
+### "Your Recent Purchase"
+- Techniques: spoofed sender, BCC'd recipients, urgency, poor grammar/typos, and attachments. The attacker uses **BCC** so recipients cannot see one another  lending false legitimacy ("nothing to worry about")  and includes an attachment in the body.
+
+- ("nothing to worry about") and includes an attachment in the body.
+
+![Alt text](https://i.ibb.co/35FbKNkW/09-recent-purchase-email.png)
+- An "Apple Support" purchase confirmation; the real recipient is BCC'd to hide the distribution list
+
+![Alt text](https://i.ibb.co/mCtY99wQ/09-recent-purchase-attachment-icon.png)
+- The payload arrives as a macro-enabled Word  .dot attachment
+
+![Alt text](https://i.ibb.co/7dKWMmSF/09-recent-purchase-word-receipt.png)
+- Opened in Word, the "receipt" hides a redirect link behind its content.
+
+### DHL  "Express Courier Shipping notice"
+- Techniques: spoofed sender, brand-mimicking HTML, and attachments. The sender address does not match the impersonated company (DHL). The HTML body mimics DHL branding, and an Excel attachment is offered for download. Detonating it reveals a script that attempts to download a payload (and throws an error in the sandbox), confirming malicious intent.
+
+![Alt text](https://i.ibb.co/HQDDZrp/09-dhl-email.png)
+- The sender address (glamcarcompany.de) doesn't match the impersonated DHL brand
+
+![Alt text](https://i.ibb.co/BKBJsDD3/09-dhl-body-xlsx.png)
+- The body mimics DHL and offers an Excel "confirmation" attachment.
+
+![Alt text](https://i.ibb.co/97vy4Dq/09-dhl-excel-enable-editing.png)
+- The classic "Enable Editing" prompt the trigger to run the embedded macro.
+
+![Alt text](https://i.ibb.co/gLqfZBhV/09-dhl-regasms-error.png)
+- Detonated, the macro launches regasms.exe to fetch a payload and throws an error, confirming malicious intent
+
+---
+---
+---
+
+### Sample 1  Binance ("Withdraw Successful")
+A higher-sophistication, **authenticated** phishing campaign abusing AWS SES.
+
+| Indicator | Value / Note |
+|-----------|--------------|
+| Sender | `noreply-supportbinancewallet.irs@auswestbc.com.au` |
+| Sender domain | `auswestbc.com.au` |
+| Sender IP | `69.169.224.12` (does not match the SPF lookup) |
+| Subject | `[Binance] Withdraw Successful - 2023-07-30 51:51:51(UTC)` (malformed timestamp) |
+| X-Mailer | PHPMailer 6.1.5 |
+| Message-ID / Return-Path | `...@eu-central-1.amazonses.com` (domain mismatch) |
+| Phishing domain | `shylshom.com` (unrelated to Binance; likely attacker-controlled) |
+| Auth results | `spf=pass`, `dkim=pass`, `dmarc=none` |
+
+**Why it matters:** 
+- the attacker relayed through legitimate AWS SES infrastructure (high IP reputation, SPF/DKIM pass, better inbox placement, lower spam scoring)  likely a compromised or throwaway SES tenant. 
+- The body uses Binance branding and an account-compromise lure ("Don't recognize this activity?", a fake withdrawal alert, a "Cancel Transaction" CTA, and a face-verification request), but linguistic artifacts ("Your withdraw of", "will be refund your funds") betray a low-quality or translated kit. 
+- Good enrichment candidates: passive DNS, WHOIS-age correlation, TLS certificate transparency, and VirusTotal. Mapped TTPs: display-name spoofing, authenticated phishing, T1566.002, T1078, T1204.001, T1056, T1557.
+
+![Alt text](https://i.ibb.co/r20fL3gG/09-s1-binance-email.png)
+- The lure: Binance branding, a fake withdrawal alert, and a "Cancel Transaction" button pointing to shylshom.com 
+
+![Alt text](https://i.ibb.co/v6CqBXym/09-s1-binance-spf-tree.png)
+- The SPF lookup for the sender domain, the source IP doesn't appear among the authorized ranges.
+
+
+![Alt text](https://i.ibb.co/4nDsYKGn/09-s1-binance-xms-headers.png)
+- Microsoft 365 processing headers captured for the message.
+
+![Alt text](https://i.ibb.co/zVGvmXxF/09-s1-binance-raw-headers.png)
+- The raw headers reveal the AWS SES relay and the spf=pass | dkim=pass | dmrac=none combination that aids inbox placement
+
+---
+### Sample 2  Microsoft ("Unusual sign-in activity")
+Lower sophistication, but noisier and more obviously malicious.
+
+| Indicator              | Value / Note                                                              |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Sender                 | `no-reply@access-accsecurity.com` (display name "Microsoft account team") |
+| Sender domain          | `access-accsecurity.com` (fake Microsoft-themed)                          |
+| Envelope / Return-Path | `quihdimdfghdrflmnder.co.uk` (randomized, suspicious)                     |
+| Reply-To               | `solutionteamrecognizd03@gmail.com` (attacker-controlled)                 |
+| Sender IP              | `89.144.44.42` (does not match SPF)                                       |
+| Auth results           | `spf=none`, `dkim=none`, `dmarc=permerror`                                |
+| Spam / bulk score      | `SCL: 5`, `BCL: 6`                                                        |
+
+**Tells:** 
+- Microsoft would send from `microsoft.com` or `account.microsoft.com`, not this domain. 
+- The biggest red flag is the **Reply-To pointing at a Gmail address**  clicking "Report The User" opens a reply straight to the attacker. 
+- The body leans on fear and urgency with fabricated session metadata (a Russia/Moscow login, Firefox on Windows 10). Mapped TTPs: T1566.002, T1598, T1204.001, T1071.003, T1583.001.
+
+![Alt text](https://i.ibb.co/qM0XNPbT/09-s2-microsoft-email.png)
+- The lure fabricates a Russia/Moscow login on Firefox/Windows 10 and pushes a "Report The User" button
+
+![Alt text](https://i.ibb.co/SwnqBPH0/09-s2-vt-domain.png)
+- The randomized envelope domain, checked against VirusTotal.
+
+![Alt text](https://i.ibb.co/HpBkQwgd/09-s2-raw-headers.png)
+- The raw headers expose failing authentication (spf=none, dkim=none, dmarc=permerror ) and a Gmail Reply-To
+
+
+---
+### Sample 3  Prize scam ("You have won a Ninja Foodi…")
+| Indicator | Value / Note |
+|-----------|--------------|
+| Sender | `ngcxl@ganmorfan.com` |
+| Sender IP | `103.167.154.110` (does not match SPF) |
+| X-Mailer | PHPMailer 6.1.5 |
+| Return-Path | `guahp@mcwwh.com` |
+| Phishing URL | `hxxps://t[.]co/Evg8zw1y0g` |
+| Redirect URL | `hxxps://velocityspring[.]com/0/0/0/5f8349b1fbe20fbb...` |
+| Phishing domain | `velocityspring[.]com` |
+| Impersonated brand | Microsoft |
+
+A "free loyalty prize" lure: clicking the image redirects through a shortener to a page that impersonates a Microsoft login portal to harvest credentials. Mapped TTPs: T1566.002, T1598, T1204.001, T1583.001.
+
+![Alt text](https://i.ibb.co/Xxn5DSc9/09-s3-kohls-ninja-email.png)
+- The prize lure uses Kohl's branding and a t.co shortened over the image
+
+![Alt text](https://i.ibb.co/pBJLW9SK/09-s3-vt-velocityspring.png)
+- Multiple vendors flag the redirect domain velocityspring.com as phishing
+
+![Alt text](https://i.ibb.co/jPFCQPpn/09-s3-fake-microsoft-login.png)
+- The final destination impersonates a Microsoft login portal to harvest credentials.
+
+---
+### Sample 4  BEC ("united scientific equipment")
+A payment-diversion / Business Email Compromise scenario.
+
+| Indicator                | Value / Note                                                       |
+| ------------------------ | ------------------------------------------------------------------ |
+| Sender                   | `Yan Ting <yanting@united.com.sg>` (spoofed domain)                |
+| Sender IP                | `71.19.248.52`                                                     |
+| Message-ID / Return-Path | `...@united.com.sg`                                                |
+| Attachment               | `outstanding invoices pdf.exe`                                     |
+| SHA-256                  | `05b6ee8ad090962be89b9f9d1c604541bfc1914e94c245bad6f469988eed019c` |
+| File size                | 0.79 MB                                                            |
+| Malware families         | AgentTesla, SnakeKeylogger                                         |
+
+**BEC tells in the body:** 
+- urgency around payment, a claim that *bank details have changed*, a communication-disruption story ("someone is blocking our emails," "his mailbox might be wrong"), and the use of a *second/alternate email box*. 
+- Sandbox analysis of the attachment (delivered as `Invoice.doc` / `.exe`) confirms malicious activity, identifying XWorm/AgentTesla-class behaviour. Mapped TTPs: T1566.001, T1204.002, T1056.001, T1555, T1041.
+
+![Alt text](https://i.ibb.co/Kc7Wy1tm/09-s4-united-email.png)
+- A payment-diversion BEC: changed bank details, a blocked-mailbox story, and an attached "invoice.
+
+![Alt text](https://i.ibb.co/846mqFbn/09-s4-invoice-zip-exe.png)
+- The "invoice" is actually an executable the file extension gives it away.
+
+![Alt text](https://i.ibb.co/Xx2WRvcz/09-s4-anyrun-analysis.png)
+- ANY.RUN returns a malicious verdict, tagging XWorm/AgentTesla-class behaviour.
+
+![Alt text](https://i.ibb.co/FbT0MCmh/09-s4-raw-headers.png)
+- The raw headers confirm the spoofed sender domain and routing.
+
+---
+
+
+## 10. Outlook Forensics
+
+To investigate Outlook data on a Windows host, check:
+- `%UserProfile%\AppData\Local\Microsoft\Outlook`
+- `%UserProfile%\Documents\Outlook`
+
+Two data file types:
+- **OST** (Offline Storage Table)  created when Outlook runs in cached Exchange mode, letting users access mail offline.
+- **PST** (Personal Storage Table)  commonly used for POP3, IMAP, or web-based accounts, where messages are downloaded to the user's profile.
+- ![Alt text](https://i.ibb.co/WNsgjM2D/10-outlook-files-folder.png)
+
+Tools for examining these files:
+- **Kernel OST Viewer**  a forensic tool for reading Outlook OST files (emails, contacts, calendars, and other items) without an Exchange connection.
+- **Kernel PST Viewer**  the same capability for PST files.
+
+![Alt text](https://i.ibb.co/w5GqBdL/10-kernel-ost-viewer.png)
+- Kernel OST Viewer reads OST mailbox data without an Exchange connection.
+
+![Alt text](https://i.ibb.co/d02rhDG7/10-kernel-pst-viewer.png)
+- Kernel PST Viewer offers the same capability for PST files.
+
+---
+## 11. What is Microsoft Defender for Office 365?
+- Microsoft Defender for Office 365 (MDO), formerly Office 365 Advanced Threat Protection (ATP)  is Microsoft's cloud-native email and collaboration security solution. It is deeply integrated with Exchange Online Protection (EOP) and extends its capabilities with advanced threat detection, investigation, and response tooling across email, Teams, SharePoint, and OneDrive.
+
+- MDO sits on top of Exchange Online Protection (EOP), which handles basic spam filtering, malware scanning, and policy enforcement. While EOP is included in every Microsoft 365 subscription, MDO adds a sophisticated second layer targeting targeted attacks, zero-day malware, business email compromise (BEC), and credential phishing.
+
+![Alt text](https://i.ibb.co/DHqmkzp6/image-34-1024x639.png)
+
+Quick Statics:
+- 160B => Emails analyzed per day by Microsoft
+- 99.9% => Spam & malware catch rate (SLA)
+- Less than 1 min Safe Links detonation time
+
+
+- ##### MDO Architecture, How Mail Flows: 
+	- Every inbound email passes through a series of inspection layers before landing in a mailbox. Understanding this pipeline is essential for any investigation.
+
+- ![Alt text](https://i.ibb.co/Wj4msTM/tp-emailprocessingineopt3.png)
+
+
+	- 1 · Edge Filtering & Connection Filter
+		- IP reputation checks, sender allow/block lists, and SPF pre-check. Mail from known-bad IPs is rejected before it even enters the tenant.
+
+	- 2 · Exchange Online Protection (EOP)
+		- Anti-spam policies, bulk mail scoring, inbound connector rules, mail flow rules (transport rules), malware scanning via multi-engine AV, DKIM/DMARC evaluation, and initial spoofing checks.
+
+	- 3 · MDO Safe Attachments (Detonation)
+		- Unknown/suspicious attachments are routed to a behavioral sandbox. The original message is held in delivery (or delivered to mailbox with Dynamic Delivery) while the file is detonated in a virtual machine. Verdict returned within seconds to ~5 minutes.
+
+	- 4 · MDO Safe Links
+		- URLs are rewritten to Microsoft-proxied links at delivery time. At click time, the URL is re-evaluated in real time against updated threat intelligence. Malicious or detonated URLs are blocked even if they were clean at delivery.
+
+	- 5 · Anti-Phishing & Impersonation Protection
+		- Machine-learning models evaluate sender impersonation (user and domain), spoofing, and mailbox intelligence to detect BEC and phishing. Messages can be quarantined, moved to Junk, or have safety tips prepended.
+
+	- 6 · Mailbox Delivery
+		- Mail passes through or is quarantined/junked/deleted based on policy. Post-delivery protection continues via Zero-hour Auto Purge (ZAP).
+
+- ![Alt text](https://i.ibb.co/3yQmnKVr/mdo-filter-stack-phase2.png)
+- ![Alt text](https://i.ibb.co/vxXZ4fZ1/mdo-filter-stack-phase3.png)
+
+	- Side Note: Third-party gateway pitfall If your org routes mail through a 3rd-party SEG (e.g., Proofpoint, Mimecast) before it hits Exchange Online, MDO's detonation and Safe Links features may not see the original message. Ensure Enhanced Filtering for Connectors (Skip Listing) is configured so MDO evaluates the true sender IP.
+
+
+
+- #### Core Protection Stack:
+	- Safe Attachments: Detonates unknown files in an isolated VM. Supports Dynamic Delivery to minimize user delays.
+	- Safe Links: Rewrites URLs and evaluates at click-time. Covers email, Teams messages, and Office docs.
+	- Anti-Phishing: User & domain impersonation detection, mailbox intelligence, and spoof intelligence.
+	- ZAP (Zero-hour Auto Purge): Retroactively removes malicious mail from mailboxes after delivery when a verdict changes.
+	- Threat Explorer: Central investigation hub with email search, verdicts, sender data, URL/file details, and actions.
+
+- All MDO functionality lives inside the Microsoft Defender XDR portal at security.microsoft.com. Key navigation paths:
+	- Email & Collaboration AND Threat Explorer:
+		- Your primary investigation workspace. Search emails by sender, recipient, subject, URL, file hash, verdict, and more. Supports 30-day lookback (P2).
+			- ![Alt text](https://i.ibb.co/HTXwnZNN/te-rtd-all-email-view.png()
+
+	- Email & Collaboration AND Review AND Quarantine:
+		- View and manage quarantined messages across all users. Release, download, or delete. Supports bulk operations.
+			- ![Alt text](https://i.ibb.co/Jw3Dtrbf/quarantine-message-main-page-mobile-actions.png)
+
+	- Email & Collaboration AND Review AND Message Trace:
+		- Detailed mail delivery audit trail. Track a specific message from sender to recipient including all transport hops, rules triggered, and final disposition.
+			- ![Alt text](https://i.ibb.co/rR0FtfZT/image.png)
+
+	- Incidents & Alerts AND Incidents:
+		- Correlated alerts grouped into incidents by Microsoft Defender XDR. Each incident may include email, identity, endpoint, and cloud app signals.
+
+		- ![Alt text](https://i.ibb.co/CpFcC9LS/incident-side-panel.png)
+
+		- ![Alt text](https://i.ibb.co/xt9zqknC/image-png-Nov-13-2024-04-22-51-5159-PM.webp)
+	
+		- ![Alt text](https://i.ibb.co/xqCv1JtW/image-png-Nov-13-2024-04-43-04-5837-PM.webp)
+	
+	- Email & Collaboration AND Policies & Rules:
+		- Configure and audit anti-spam, anti-phishing, Safe Attachments, Safe Links, and quarantine policies. Always review policy order when investigating gaps.
+			- ![Alt text](https://i.ibb.co/BHYk4MMm/Screenshot-1-2048x2048.webp)
+
+	- Hunting AND Advanced Hunting:
+		- Kusto Query Language (KQL) interface over EmailEvents, EmailUrlInfo, EmailAttachmentInfo, and UrlClickEvents tables. P2 or Microsoft 365 Defender E5.
+
+		- ![Alt text](https://i.ibb.co/HRGd2Fh/get-started-section.png)
+
+- ##### Threat Explorer (or Real-time Detections in P1)**:
+	- is the primary lens through which analysts investigate email threats. It surfaces detailed per-email data including delivery verdicts, sender analytics, URL and file detonation results, and actions taken.
+
+- **Critical Filter Fields:**
+	- Sender Address: exact sender email (not display name)
+	- Sender Domain: @domain.com or subdomain  
+	- Recipient: target mailbox
+	-  Subject: partial or exact match
+	- Message ID: unique <msgid@domain> header value
+	- Network Message ID: Microsoft's internal GUID for the message
+	- Original Client IP:  IP of the sending MTA
+	- Delivery Action:  Delivered | Junked | Blocked | Replaced
+	- Delivery Location: Inbox | Junk | Quarantine | Deleted Items | External
+	- Detection Technology:  SafeLinks | SafeAttachments | AntiPhish | ZAP ...
+	- Verdict:  Clean | Spam | Phish | Malware | Bulk
+	- URL Domain: hunt by malicious domain in body URLs
+		- ![Alt text](https://i.ibb.co/5WZFsvXq/image-11.png)
+
+	- Pro tip: 
+		- Always search by Network Message ID when following up on a specific reported email. It is unique and immutable, unlike Subject or Sender which can be spoofed. You can find it in the X-MS-Exchange-Organization-Network-Message-Id header.
+
+- #####  **ZAP & Remediation Actions**
+	- Zero-hour Auto Purge (ZAP) is one of MDO's most powerful post-delivery features. It retroactively moves emails to the Junk folder or deletes them from Inboxes when a verdict changes after delivery 
+	- For example when a URL becomes malicious hours after the email was received.
+
+	- ![Alt text](https://i.ibb.co/1JBbMXLX/tp-remediationarticle3.png)
+
+
+	- Malware ZAP: Always on. Moves or hard-deletes messages when a new malware signature matches a delivered email. 
+		- Cannot be disabled.
+
+	- Phish ZAP: Enabled by default. Moves phishing messages to Junk or Deleted Items when a post-delivery verdict fires. 
+		- Configurable per anti-spam policy.
+
+	- Spam ZAP: Applies only to messages already delivered to Inbox. Moves to Junk folder. 
+		- Configurable in anti-spam policy (default: enabled).
+
+
+- #### Threat Hunting with KQL:
+	- Advanced Hunting lets you query raw telemetry with Kusto Query Language (KQL). 
+	- The key email tables are
+		- EmailEvents
+		- EmailUrlInfo
+		- EmailAttachmentInfo
+		- UrlClickEvents 
+	- ![Alt text](https://i.ibb.co/39JP5qxy/URLClick-Screenshot-1.png)
+
+---
+## 12. Analyst Checklist & Scenarios
+
+### Collection checklist
+
+From the **header**:
+- sender email address,
+- sender IP address,
+- reverse lookup for the sender IP,
+- subject line,
+- recipient IP address,
+- reply-to address,
+- date/time.
+
+From the **body**:
+- any URLs (expand shortened links to the real destination),
+- the attachment name,
+- the attachment's hash value.
+
+### Scenario  A user reports a suspicious link
+
+**Investigate:**
+1. Review the user's report.
+2. Confirm the user did **not** click the link.
+3. Collect the email details  sender address, subject, timestamps, and any attachments or screenshots.
+4. Perform header analysis to identify the sender IP, the route taken, and any related malicious activity.
+5. Examine the URL without clicking it  expand it if shortened, and check it on CTI platforms.
+6. Detonate the link in an isolated sandbox to observe its behaviour.
+7. Review relevant security logs for related activity.
+
+**Determine if the link is malicious:**
+- *Reputation check*  run it through VirusTotal and similar tools.
+- *Domain analysis*  research the domain for prior phishing or malicious associations.
+- *Content analysis*  review the landing page in a safe environment to assess legitimacy.
+
+**Recommend to the user:**
+- *Don't engage*  do not click the link or reply.
+- *Report and educate*  forward the message to the security team; reinforce how to spot phishing (unusual sender addresses, poor grammar, link verification).
+- *Update security practices*  if any credentials were entered, change them immediately.
+
+### Scenario  The user already clicked or downloaded
+
+1. **Contain**  disconnect the affected device from the network to prevent malware spread and lateral movement.
+2. **Assess**  determine whether credentials or personal information were entered, and whether files or software were downloaded.
+3. **Monitor**  watch the account and device for unusual behaviour, unauthorized access attempts, or changed settings.
+
+**Respond:**
+- *Change credentials*  reset passwords for any potentially compromised accounts (starting with the one tied to the phishing email); enforce strong, unique passwords and enable MFA.
+- *Run security scans*  perform malware scans on the host to detect anything installed.
+- *Educate the user.*
+
+**Follow-up:**
+- Notify the relevant teams for further investigation and monitoring.
+- If sensitive data may have been exposed, monitor for breaches involving that information.
+
+### Mitigation by attack class
+- **Phishing**  deploy email security solutions to block spam/unwanted mail, educate users, and enforce DMARC.
+- **Spear phishing / whaling**  heightened awareness and verification for targeted and executive-level recipients.
+- **Vishing**  train staff never to disclose sensitive information over unsolicited calls.
+- **BEC**  verify any change to payment or banking details through a trusted out-of-band channel before acting.
+---
+ Last touch:
+ - This guide is intended as a working reference for SOC analysts and incident responders. 
+ - Treat every indicator as something to corroborate, handle live samples only in isolated environments.
+- Keep your blocklists and detections updated as new IOCs emerge.
