@@ -14,6 +14,10 @@ image:
 
 As part of our investigation into the network incident, we began by extracting crucial information from the DHCP and Kerberos protocols, which provided valuable context regarding the compromised device.
 
+![DHCP traffic in Wireshark](/assets/img/posts/warmcookie/01.png)
+
+![DHCP host details](/assets/img/posts/warmcookie/02.png)
+
 - **DHCP Information**:
 - **MAC Address**: 00:1c:bf:03:54:82
 - **IP Address**: 10.8.15.132
@@ -21,6 +25,10 @@ As part of our investigation into the network incident, we began by extracting c
 - **Client Name**: DESKTOP-H8ALZBV.lafontainebleu.org
 
 This information indicates the specific device on the network and can help in pinpointing its activity during the incident.
+
+![Kerberos CNameString filter](/assets/img/posts/warmcookie/03.png)
+
+![Kerberos user names](/assets/img/posts/warmcookie/04.png)
 
 - **Kerberos Information**: By filtering Kerberos packets with `Kerberos.CNameString`, we identified two potential user names:
 - **plucero**
@@ -37,7 +45,13 @@ Upon filtering packets based on HTTP requests, we noted that the first packet co
 
 Using **NetworkMiner**, we extracted the hash of the file:
 
+![File extracted in NetworkMiner](/assets/img/posts/warmcookie/05.png)
+
 - **Hash SHA-256** : `798563fcf7600f7ef1a35996291a9dfb5f9902733404dd499e2e736ea1dc6fc5`
+
+![File hash in NetworkMiner](/assets/img/posts/warmcookie/06.png)
+
+![VirusTotal Trojan classification](/assets/img/posts/warmcookie/07.png)
 
 A search on **VirusTotal** classified the file as a **Trojan**, with several known aliases including:
 
@@ -46,6 +60,8 @@ A search on **VirusTotal** classified the file as a **Trojan**, with several kno
 - **be very very careful.zip**
 
 Upon extracting the contents of the zip file, we discovered a **JavaScript file** named **"Invoice-876597035-003-8331775-8334138.js"**, which is often associated with malicious activity.
+
+![Extracted JavaScript file](/assets/img/posts/warmcookie/08.png)
 
 - and You can ensure that by take the hash value of JS File and Go to Virus Total => Don't miss Using VM Bro you gonna be destroyed :(
 - After alot of Filtirng You wull find this HTTPS Connection
@@ -72,13 +88,23 @@ Server: cloudflare
 
 Further analysis revealed an additional **GET** request directed at the IP **72.5.43.29**, which requested a file named **f60a3e7baecf2748b1c8183ed37d1e40**. A quick search indicated multiple malware reports associated with this file, confirming its malicious nature:
 
+![GET request to 72.5.43.29](/assets/img/posts/warmcookie/09.png)
+
+![Downloaded file detail](/assets/img/posts/warmcookie/10.png)
+
+![Malware reports for the file](/assets/img/posts/warmcookie/11.png)
+
 - [Any.run Analysis Report](https://any.run/report/b7aec5f73d2a6bbd8cd920edb4760e2edadc98c3a45bf4fa994d47ca9cbd02f6/b5f1dbad-3161-42cc-824a-acc62eb98f8d)
 
 Although the exact type of malware was not immediately clear, analysis of the packet revealed the message **"This program cannot be run in DOS mode,"** suggesting that it is an executable file (EXE). This is a strong indicator of potential malware, as any connection to an external host that results in an EXE file being sent typically signifies malicious intent.
 
+!["This program cannot be run in DOS mode"](/assets/img/posts/warmcookie/12.png)
+
 ### 4. Credential Extraction
 
 Using **NetworkMiner**, we obtained several credentials that could assist in further investigations:
+
+![Credentials extracted in NetworkMiner](/assets/img/posts/warmcookie/13.png)
 
 - **LAFONTAINEBLEU.ORG**
 - **Username**: `desktop-h8alzbv.lafontainebleu.org`
