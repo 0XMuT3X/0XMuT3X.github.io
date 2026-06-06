@@ -4,7 +4,7 @@ icon: fas fa-info-circle
 order: 4
 ---
 
-Hi, I'm **Mohamed Abdullah** — a blue team and digital forensics enthusiast.
+Hi, I'm **Mohamed Abdullah**: a blue team and digital forensics enthusiast.
 
 I focus on the defensive side of security: investigating incidents, analyzing
 malware and suspicious email, and hunting for advanced threats across endpoint,
@@ -13,12 +13,12 @@ and the techniques I use day to day.
 
 ## What I write about
 
-- **Memory Forensics** — RAM acquisition and analysis with Volatility and friends.
-- **Disk Forensics** — file systems, OS artifacts, and timeline analysis.
-- **Network Forensics** — PCAP, flow, and log analysis to reconstruct intrusions.
-- **Reverse Engineering** — taking malware apart to understand and detect it.
-- **APT Hunting** — proactive, hypothesis-driven threat hunting.
-- **Phishing & Mail Analysis** — header analysis, attack classification, and IR.
+- **Memory Forensics**: RAM acquisition and analysis with Volatility and friends.
+- **Disk Forensics**: file systems, OS artifacts, and timeline analysis.
+- **Network Forensics**: PCAP, flow, and log analysis to reconstruct intrusions.
+- **Reverse Engineering**: taking malware apart to understand and detect it.
+- **APT Hunting**: proactive, hypothesis-driven threat hunting.
+- **Phishing & Mail Analysis**: header analysis, attack classification, and IR.
 
 ## Connect
 
