@@ -51,7 +51,7 @@ Its motivation centers on:
 
 <img src="/assets/img/posts/apt29-hunting/img-003.png" width="520" alt="APT29 focus"/>
 
-> 📎 References: <https://www.vectra.ai/modern-attack/threat-actors/apt29> · <http://hedgehogsecurity.co.uk/blog/who-is-apt29>
+> 📎 References: <https://www.vectra.ai/modern-attack/threat-actors/apt29> · <https://hedgehogsecurity.co.uk/blog/who-is-apt29>
 
 ### 1.4 Most Targeted Countries
 
@@ -1469,7 +1469,7 @@ Rogue user: APT29 (added to Remote Desktop Users)
 1. SVR / Foreign Intelligence Service — <https://en.wikipedia.org/wiki/Foreign_Intelligence_Service_(Russia)>
 2. Sekoia glossary (APT29 / Nobelium / Cozy Bear) — <https://www.sekoia.io/en/glossary/apt29-aka-nobelium-cozy-bear/>
 3. Vectra AI threat actor profile — <https://www.vectra.ai/modern-attack/threat-actors/apt29>
-4. Hedgehog Security — <http://hedgehogsecurity.co.uk/blog/who-is-apt29>
+4. Hedgehog Security — <https://hedgehogsecurity.co.uk/blog/who-is-apt29>
 5. Cyble threat actor profile — <https://cyble.com/threat-actor-profiles/apt-29/>
 6. Mandiant / Google Cloud — APT29 evolving diplomatic phishing — <https://cloud.google.com/blog/topics/threat-intelligence/apt29-evolving-diplomatic-phishing>
 7. Mandiant / Google Cloud — Tracking APT29 phishing campaigns — <https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29-phishing-campaigns>
