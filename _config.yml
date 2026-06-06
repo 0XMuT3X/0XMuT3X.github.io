@@ -16,17 +16,18 @@ timezone: Africa/Cairo
 
 title: Mohamed Abdullah # the main title
 
-tagline: Try to figure out what is happening  # it will display as the subtitle
+tagline: Blue Team & Digital Forensics — figuring out what happened  # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
-  Yebby, github.
+  Blue team and digital forensics notes: memory, disk, and network forensics,
+  reverse engineering, APT hunting, and phishing & mail analysis.
 
 # Fill in the protocol & hostname for your site.
 # E.g. 'https://username.github.io', note that it does not end with a '/'.
 url: "https://mohamed856.github.io"
 
 github:
-  username: github_username # change to your GitHub username
+  username: mohamed856 # change to your GitHub username
 
 twitter:
   username: twitter_username # change to your Twitter username
@@ -34,16 +35,13 @@ twitter:
 social:
   # Change to your full name.
   # It will be displayed as the default author of the posts and the copyright owner in the Footer
-  name: mohamed856
+  name: Mohamed Abdullah
   email: mohamedabdullh116@gmail.com # change to your email address
   fediverse_handle: # fill in your fediverse handle. E.g. "@username@domain.com"
   links:
     # The first element serves as the copyright owner's link
-    - https://twitter.com/username # change to your Twitter homepage
-    - https://github.com/username # change to your GitHub homepage
-    # Uncomment below to add more social links
-    # - https://www.facebook.com/username
-    # - https://www.linkedin.com/in/username
+    - https://www.linkedin.com/in/mohamed-abdullah-823990253/
+    - https://github.com/mohamed856
 
 # Site Verification Settings
 webmaster_verifications:
