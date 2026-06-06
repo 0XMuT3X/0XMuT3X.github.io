@@ -20,6 +20,13 @@ and the techniques I use day to day.
 - **APT Hunting**: proactive, hypothesis-driven threat hunting.
 - **Phishing & Mail Analysis**: header analysis, attack classification, and IR.
 
+## Certifications
+
+- **CRTP**: Certified Red Team Professional, Altered Security ([verify](https://www.credential.net/c975a40b-ec54-4f10-8d90-ea2a845bd984))
+- **eCDFP**: eLearnSecurity Certified Digital Forensics Professional, INE ([verify](https://certs.ine.com/a91eeed8-0943-481a-9e99-01242846c640))
+- **eCTHP**: eLearnSecurity Certified Threat Hunting Professional, INE ([verify](https://certs.ine.com/f8a96b75-8d5b-4859-bcf7-d12e5ae009ba))
+- **eCIR**: eLearnSecurity Certified Incident Responder, INE ([verify](https://certs.ine.com/2d12ff3a-639e-4ea7-ae96-f77cbf4a3343))
+
 ## Connect
 
 - **LinkedIn:** [Mohamed Abdullah](https://www.linkedin.com/in/mohamed-abdullah-823990253/)
