@@ -2,7 +2,7 @@
 title: "MITRE ATT&CK \"Top 10\" Initial Access Techniques Explained Simply"
 date: 2025-01-19 19:14:46 +0200
 categories: [APT Hunting]
-tags: [mitre-attack, initial-access, ttps, threat-intel, phishing, supply-chain, valid-accounts, soc, blue-team]
+tags: [mitre-attack, initial-access, ttps, threat-intel, phishing, supply-chain, valid-accounts, soc, blue-team, threat-hunting, apt-hunting, apt, dfir, digital-forensics, adversary-tactics, detection-engineering, ioc, threat-intelligence]
 image:
   path: /assets/img/posts/mitre-top10-initial-access/01.jpg
   alt: "MITRE ATT&CK Top 10 Initial Access techniques"

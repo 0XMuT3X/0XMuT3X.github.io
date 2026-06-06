@@ -2,7 +2,7 @@
 title: "Full APT29 Hunting"
 date: 2026-06-05 12:00:00 +0200
 categories: [APT Hunting]
-tags: [apt29, cozy-bear, threat-hunting, mitre-attack, kql, sysmon, wazuh, cobalt-strike, phishing, lsass, dfir, blue-team]
+tags: [apt29, cozy-bear, threat-hunting, mitre-attack, kql, sysmon, wazuh, cobalt-strike, phishing, lsass, dfir, blue-team, digital-forensics, apt, apt-hunting, incident-response, ioc, ttps, threat-intelligence, persistence, lateral-movement, detection-engineering, memory-forensics]
 image:
   path: /assets/img/posts/apt29-hunting/thumbnail.png
   alt: "APT29 (Cozy Bear) threat-hunting lab report"

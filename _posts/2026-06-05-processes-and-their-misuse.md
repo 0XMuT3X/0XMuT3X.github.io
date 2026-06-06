@@ -2,7 +2,7 @@
 title: "Processes and Their Misuse (csrss.exe, smss.exe, System Idle Process)"
 date: 2026-06-05 12:00:00 +0200
 categories: [Interesting Topics]
-tags: [windows-internals, processes, malware-analysis, threat-hunting, csrss, smss, dfir, blue-team]
+tags: [windows-internals, processes, malware-analysis, threat-hunting, csrss, smss, dfir, blue-team, mitre-attack, digital-forensics, incident-response, apt-hunting, process-injection, lolbins, detection-engineering]
 image:
   path: /assets/img/posts/processes-and-their-misuse/01.jpg
   alt: "Processes and their misuse — csrss.exe, smss.exe, System Idle Process"
