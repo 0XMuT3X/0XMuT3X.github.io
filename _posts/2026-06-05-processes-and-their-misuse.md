@@ -3,6 +3,9 @@ title: "Processes and Their Misuse (csrss.exe, smss.exe, System Idle Process)"
 date: 2026-06-05 12:00:00 +0200
 categories: [Interesting Topics]
 tags: [windows-internals, processes, malware-analysis, threat-hunting, csrss, smss, dfir, blue-team]
+image:
+  path: /assets/img/posts/processes-and-their-misuse/01.jpg
+  alt: "Processes and their misuse — csrss.exe, smss.exe, System Idle Process"
 ---
 
 ## 1. csrss.exe (Client Server Runtime Process)
@@ -10,6 +13,8 @@ tags: [windows-internals, processes, malware-analysis, threat-hunting, csrss, sm
 The **Client Server Runtime Process (csrss.exe)** is a critical system process in Windows, responsible for handling the user-mode portion of the Win32 subsystem. Previously, it also managed window drawing and graphics rendering, but modern versions of Windows have moved most of these functions elsewhere. The executable is located at:
 
 `%windir%\System32\csrss.exe`
+
+![csrss.exe location and instances](/assets/img/posts/processes-and-their-misuse/02.png)
 
 ### Role and Importance
 
@@ -38,6 +43,8 @@ Attackers often exploit **csrss.exe** to evade detection by imitating its behavi
 - **Fake processes** such as `csrrs.exe` or `csrsr.exe`, which are not legitimate Windows processes.
 - **Graphical glitches** or degraded GPU performance, indicating that a rogue **csrss.exe** is interfering with the system.
 
+![Suspicious csrss.exe indicators](/assets/img/posts/processes-and-their-misuse/03.jpg)
+
 #### How to Check for Legitimacy
 
 1. **Verify Digital Signatures**:
@@ -52,11 +59,21 @@ Attackers often exploit **csrss.exe** to evade detection by imitating its behavi
 
 More details on inspecting **csrss.exe** can be found in this article: [**Recoverit Guide**](https://recoverit.wondershare.com/windows-computer-tips/csrss-exe.html)**.**
 
+![Verifying csrss.exe digital signature](/assets/img/posts/processes-and-their-misuse/04.png)
+
+![Checking the csrss.exe publisher](/assets/img/posts/processes-and-their-misuse/05.png)
+
+![Cross-verifying the hash on a CTI platform](/assets/img/posts/processes-and-their-misuse/06.png)
+
+![Listing csrss.exe instances per session](/assets/img/posts/processes-and-their-misuse/07.png)
+
 ## 2. smss.exe (Session Manager Subsystem)
 
 The **Session Manager Subsystem (smss.exe)** is the first user-mode process executed by the system, located at:
 
 `%SystemRoot%\System32\smss.exe`
+
+![smss.exe location and properties](/assets/img/posts/processes-and-their-misuse/08.png)
 
 ### Role and Functions
 
@@ -86,6 +103,12 @@ A **legitimate** smss.exe should have:
 - **No child processes**
 - **Parent Process ID (PPID) of 4**
 
+![Legitimate smss.exe — single instance, PPID 4](/assets/img/posts/processes-and-their-misuse/09.png)
+
+![smss.exe registry-driven configuration](/assets/img/posts/processes-and-their-misuse/10.png)
+
+![smss.exe session and environment setup](/assets/img/posts/processes-and-their-misuse/11.png)
+
 ### Misuse and Threats
 
 Attackers can exploit **smss.exe** for malicious purposes, such as executing **Remote Access Trojans (RATs)**. A real-world example is documented in this [Any.Run report](https://any.run/report/24b0e23df17c77d44882a2e25ecbd4d3b07015af5d44cb325679a370b8304614/edaaef85-9936-42c3-a163-c217d4f8330f).
@@ -105,15 +128,27 @@ Attackers can exploit **smss.exe** for malicious purposes, such as executing **R
 - MD5: `97A2185F37CDD11207322E349B344FB7`
 - SHA1: `DE2933539CAAC225CD11768D192BB97467E67010`
 
+![Malicious smss.exe from an unexpected location](/assets/img/posts/processes-and-their-misuse/12.png)
+
+![Unusual parent process for smss.exe](/assets/img/posts/processes-and-their-misuse/13.png)
+
+![Known-malware hash lookup](/assets/img/posts/processes-and-their-misuse/14.png)
+
 ### How to Detect Malicious smss.exe
 
 - Use **Process Explorer** or **Task Manager** to check for multiple running instances.
 - Run `tasklist /fi "imagename eq smss.exe"` in Command Prompt.
 - Inspect unusual command-line executions (`cmd.exe`, `ping`, etc.).
 
+![Detecting malicious smss.exe in Process Explorer](/assets/img/posts/processes-and-their-misuse/15.png)
+
+![smss.exe command-line inspection](/assets/img/posts/processes-and-their-misuse/16.png)
+
 ## 3. System Idle Process
 
 The **System Idle Process** is the **first** process executed by the kernel. Its primary purpose is to **occupy CPU cycles** when no other tasks are running.
+
+![System Idle Process CPU usage](/assets/img/posts/processes-and-their-misuse/17.png)
 
 ### Role and Importance
 
