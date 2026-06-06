@@ -3,6 +3,9 @@ title: "2024-08-15 Traffic Analysis Exercise: WARMCOOKIE"
 date: 2024-08-15 12:00:00 +0200
 categories: [Network Forensics]
 tags: [network-forensics, pcap, wireshark, networkminer, malware-traffic-analysis, warmcookie, kerberos, trojan, ioc, blue-team]
+image:
+  path: /assets/img/posts/warmcookie/thumbnail.jpg
+  alt: "WARMCOOKIE traffic analysis exercise"
 ---
 
 ## Network Incident Analysis: Deep Dive into Compromised Device
