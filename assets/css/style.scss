@@ -1,11 +1,16 @@
 @import "jekyll-theme-chirpy";
 
-html[data-mode="dark"] {
+:root, html[data-mode="dark"] {
   --main-bg: #18191c !important;
+  --mask-bg: #18191c !important;
   --card-bg: #1f2125 !important;
   --sidebar-bg: #1f2125 !important;
+  --topbar-wrapper-bg: #18191c !important;
+  --search-wrapper-bg: #18191c !important;
+  --main-border-color: #2b2d31 !important;
   --text-color: #dadadb !important;
   --text-muted-color: #8b8e94 !important;
   --link-color: #81e6d9 !important;
   --nav-cursor-color: #81e6d9 !important;
+  --btn-backtotop-color: #81e6d9 !important;
 }
